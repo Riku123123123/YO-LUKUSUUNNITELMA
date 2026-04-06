@@ -1,0 +1,935 @@
+// ========== GLOBAALI DATA ==========
+let exams = [];
+let nextId = 1;
+let startDate = new Date();
+
+// ========== LUKUJÄRJESTYS DATA - LAAJENNETUT KELLONAJAT (8-22) ==========
+const HOURS = [
+  "8:00–9:00", "9:00–10:00", "10:00–11:00", "11:00–12:00", 
+  "12:00–13:00", "13:00–14:00", "14:00–15:00", "15:00–16:00",
+  "16:00–17:00", "17:00–18:00", "18:00–19:00", "19:00–20:00",
+  "20:00–21:00", "21:00–22:00"
+];
+
+const DAYS = ["Maanantai", "Tiistai", "Keskiviikko", "Torstai", "Perjantai", "Lauantai", "Sunnuntai"];
+
+// ========== MAALAUSMOODI ==========
+let paintingMode = false;
+let selectedValue = "";
+let currentPaintingColor = "";
+
+// Aktiviteettien värikoodaus
+const activityColors = {
+  "LOUNAS": "#f59e0b",
+  "LEPO": "#10b981", 
+  "VAPAA": "#6b7280",
+  "KERTAUS": "#8b5cf6",
+  "TEHTÄVÄT": "#3b82f6",
+  "KUUNTELE": "#ec4898"
+};
+
+function getActivityColor(text) {
+  for (const [key, color] of Object.entries(activityColors)) {
+    if (text.includes(key)) return color;
+  }
+  if (text.includes("Matematiikka") || text.includes("matematiikka")) return "#3b82f6";
+  if (text.includes("Englanti") || text.includes("englanti")) return "#10b981";
+  if (text.includes("Äidinkieli") || text.includes("äidinkieli")) return "#ec4898";
+  if (text.includes("Ruotsi") || text.includes("ruotsi")) return "#f59e0b";
+  if (text.includes("Kemia") || text.includes("kemia")) return "#8b5cf6";
+  if (text.includes("Fysiikka") || text.includes("fysiikka")) return "#06b6d4";
+  if (text.includes("Biologia") || text.includes("biologia")) return "#84cc16";
+  if (text.includes("Historia") || text.includes("historia")) return "#f97316";
+  return "#64748b";
+}
+
+// Oletuslukujärjestys
+let defaultSchedule = {
+  "Maanantai": {
+    "8:00–9:00": "", "9:00–10:00": "matematiikka kertaus", "10:00–11:00": "matematiikka", "11:00–12:00": "matematiikka",
+    "12:00–13:00": "LOUNAS", "13:00–14:00": "englannin kertaus", "14:00–15:00": "englanti", "15:00–16:00": "LEPO",
+    "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""
+  },
+  "Tiistai": {
+    "8:00–9:00": "", "9:00–10:00": "matematiikka", "10:00–11:00": "matematiikka", "11:00–12:00": "matematiikka",
+    "12:00–13:00": "LOUNAS", "13:00–14:00": "äidinkieli kertaus", "14:00–15:00": "äidinkieli", "15:00–16:00": "LEPO",
+    "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""
+  },
+  "Keskiviikko": {
+    "8:00–9:00": "", "9:00–10:00": "matematiikka kertaus", "10:00–11:00": "matematiikka", "11:00–12:00": "matematiikka",
+    "12:00–13:00": "LOUNAS", "13:00–14:00": "englanti", "14:00–15:00": "englanti", "15:00–16:00": "LEPO",
+    "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""
+  },
+  "Torstai": {
+    "8:00–9:00": "", "9:00–10:00": "matematiikka", "10:00–11:00": "matematiikka", "11:00–12:00": "matematiikka",
+    "12:00–13:00": "LOUNAS", "13:00–14:00": "äidinkieli", "14:00–15:00": "äidinkieli", "15:00–16:00": "LEPO",
+    "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""
+  },
+  "Perjantai": {
+    "8:00–9:00": "", "9:00–10:00": "matematiikka kertaus", "10:00–11:00": "matematiikka", "11:00–12:00": "matematiikka",
+    "12:00–13:00": "LOUNAS", "13:00–14:00": "englanti", "14:00–15:00": "englanti", "15:00–16:00": "LEPO",
+    "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""
+  },
+  "Lauantai": {
+    "8:00–9:00": "VAPAA", "9:00–10:00": "VAPAA", "10:00–11:00": "VAPAA", "11:00–12:00": "VAPAA",
+    "12:00–13:00": "VAPAA", "13:00–14:00": "VAPAA", "14:00–15:00": "VAPAA", "15:00–16:00": "VAPAA",
+    "16:00–17:00": "VAPAA", "17:00–18:00": "VAPAA", "18:00–19:00": "VAPAA", "19:00–20:00": "VAPAA",
+    "20:00–21:00": "VAPAA", "21:00–22:00": "VAPAA"
+  },
+  "Sunnuntai": {
+    "8:00–9:00": "", "9:00–10:00": "Suunnittele seuraava viikko", "10:00–11:00": "VAPAA", "11:00–12:00": "VAPAA",
+    "12:00–13:00": "VAPAA", "13:00–14:00": "VAPAA", "14:00–15:00": "VAPAA", "15:00–16:00": "VAPAA",
+    "16:00–17:00": "VAPAA", "17:00–18:00": "VAPAA", "18:00–19:00": "VAPAA", "19:00–20:00": "VAPAA",
+    "20:00–21:00": "VAPAA", "21:00–22:00": "VAPAA"
+  }
+};
+
+let currentSchedule = {};
+
+// ========== LUKUJÄRJESTYKSEN FUNKTIOT ==========
+function loadScheduleFromStorage() {
+  const saved = localStorage.getItem("ultra_schedule");
+  if (saved) {
+    try {
+      currentSchedule = JSON.parse(saved);
+    } catch(e) {
+      currentSchedule = JSON.parse(JSON.stringify(defaultSchedule));
+    }
+  } else {
+    currentSchedule = JSON.parse(JSON.stringify(defaultSchedule));
+  }
+}
+
+function saveScheduleToStorage() {
+  localStorage.setItem("ultra_schedule", JSON.stringify(currentSchedule));
+}
+
+function setScheduleCell(day, timeSlot, value) {
+  if (!currentSchedule[day]) currentSchedule[day] = {};
+  currentSchedule[day][timeSlot] = value;
+  saveScheduleToStorage();
+  
+  // Päivitä vain tietty solu (ei koko taulukkoa)
+  updateSingleCell(day, timeSlot, value);
+}
+
+function updateSingleCell(day, timeSlot, value) {
+  const cell = document.querySelector(`.schedule-cell[data-day="${day}"][data-time="${timeSlot}"]`);
+  if (cell) {
+    const contentDiv = cell.querySelector(".cell-content");
+    if (contentDiv) {
+      contentDiv.innerHTML = escapeHtml(value) || "—";
+    }
+    const bgColor = getActivityColor(value);
+    cell.style.background = `${bgColor}20`;
+    cell.style.borderLeft = `3px solid ${bgColor}`;
+  }
+}
+
+function renderTimetable() {
+  const tbody = document.getElementById("timetableBody");
+  if (!tbody) return;
+  
+  let html = "";
+  
+  for (let i = 0; i < HOURS.length; i++) {
+    const timeSlot = HOURS[i];
+    html += `<tr>`;
+    html += `<td class="time-cell">${timeSlot}</td>`;
+    
+    for (let j = 0; j < DAYS.length; j++) {
+      const day = DAYS[j];
+      const content = currentSchedule[day]?.[timeSlot] || "";
+      const bgColor = getActivityColor(content);
+      html += `
+        <td class="schedule-cell" data-day="${day}" data-time="${timeSlot}" style="background: ${bgColor}20; border-left: 3px solid ${bgColor};">
+          <div class="cell-content">${escapeHtml(content) || "—"}</div>
+          <div class="cell-actions">
+            <button class="cell-edit-btn" onclick="event.stopPropagation(); openPicker('${day}', '${timeSlot}')">✏️</button>
+            <button class="cell-clear-btn" onclick="event.stopPropagation(); clearScheduleCell('${day}', '${timeSlot}')">🗑️</button>
+          </div>
+        </td>
+      `;
+    }
+    html += `</tr>`;
+  }
+  
+  tbody.innerHTML = html;
+  
+  // Lisää klikkauskuuntelijat soluille (maalausmoodia varten)
+  attachCellClickListeners();
+}
+
+function attachCellClickListeners() {
+  document.querySelectorAll('.schedule-cell').forEach(cell => {
+    // Poista vanha listener
+    const newCell = cell.cloneNode(true);
+    cell.parentNode.replaceChild(newCell, cell);
+    
+    newCell.addEventListener('click', (e) => {
+      // Älä aktivoi jos klikattiin nappia
+      if (e.target.classList.contains('cell-edit-btn') || 
+          e.target.classList.contains('cell-clear-btn')) {
+        return;
+      }
+      
+      const day = newCell.getAttribute('data-day');
+      const time = newCell.getAttribute('data-time');
+      
+      if (paintingMode && selectedValue) {
+        // Maalausmoodi: aseta arvo suoraan
+        setScheduleCell(day, time, selectedValue);
+        showToast(`🎨 Maalattu: ${selectedValue} → ${day} ${time}`);
+      } else {
+        // Normaali tila: avaa picker
+        openPicker(day, time);
+      }
+    });
+  });
+}
+
+function clearScheduleCell(day, timeSlot) {
+  if (!currentSchedule[day]) currentSchedule[day] = {};
+  currentSchedule[day][timeSlot] = "";
+  saveScheduleToStorage();
+  updateSingleCell(day, timeSlot, "");
+  showToast(`🗑️ ${day} ${timeSlot} tyhjennetty`);
+}
+
+function openPicker(day, timeSlot) {
+  const currentContent = currentSchedule[day]?.[timeSlot] || "";
+  
+  const modal = document.createElement("div");
+  modal.className = "picker-modal";
+  modal.innerHTML = `
+    <div class="picker-modal-content">
+      <div class="picker-header">
+        <h4>✏️ Muokkaa: ${day} ${timeSlot}</h4>
+        <button class="picker-close">&times;</button>
+      </div>
+      <div class="picker-categories">
+        <div class="picker-category">
+          <div class="picker-category-title">📚 Oppiaineet</div>
+          <div class="picker-buttons">
+            <button data-value="📐 Matematiikka">📐 Matematiikka</button>
+            <button data-value="📐 Matematiikka kertaus">📐 Matematiikka kertaus</button>
+            <button data-value="🇬🇧 Englanti">🇬🇧 Englanti</button>
+            <button data-value="🇬🇧 Englanti kertaus">🇬🇧 Englanti kertaus</button>
+            <button data-value="🇸🇪 Ruotsi">🇸🇪 Ruotsi</button>
+            <button data-value="📖 Äidinkieli">📖 Äidinkieli</button>
+            <button data-value="📖 Äidinkieli kertaus">📖 Äidinkieli kertaus</button>
+            <button data-value="🧪 Kemia">🧪 Kemia</button>
+            <button data-value="⚛️ Fysiikka">⚛️ Fysiikka</button>
+            <button data-value="🧬 Biologia">🧬 Biologia</button>
+            <button data-value="📜 Historia">📜 Historia</button>
+            <button data-value="🧠 Psykologia">🧠 Psykologia</button>
+            <button data-value="💭 Filosofia">💭 Filosofia</button>
+            <button data-value="🏛️ Yhteiskuntaoppi">🏛️ Yhteiskuntaoppi</button>
+            <button data-value="✝️ Uskonto">✝️ Uskonto</button>
+            <button data-value="🌍 Maantiede">🌍 Maantiede</button>
+            <button data-value="💚 Terveystieto">💚 Terveystieto</button>
+          </div>
+        </div>
+        <div class="picker-category">
+          <div class="picker-category-title">⚡ Toiminnot</div>
+          <div class="picker-buttons">
+            <button data-value="🍽️ LOUNAS">🍽️ LOUNAS</button>
+            <button data-value="😴 LEPO">😴 LEPO</button>
+            <button data-value="✨ VAPAA">✨ VAPAA</button>
+            <button data-value="🔄 KERTAUS">🔄 KERTAUS</button>
+            <button data-value="📝 TEHTÄVÄT">📝 TEHTÄVÄT</button>
+            <button data-value="🎧 KUUNTELE">🎧 KUUNTELE</button>
+            <button data-value="📺 KATSO">📺 KATSO</button>
+            <button data-value="🏃 LIIKUNTA">🏃 LIIKUNTA</button>
+            <button data-value="🧘 MEDITAATIO">🧘 MEDITAATIO</button>
+          </div>
+        </div>
+      </div>
+      <div class="picker-custom">
+        <input type="text" id="pickerCustomInput" placeholder="Tai kirjoita oma..." value="${escapeHtml(currentContent)}">
+        <button id="pickerCustomSave">💾 Tallenna</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  modal.style.display = "flex";
+  
+  modal.querySelector(".picker-close").onclick = () => modal.remove();
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  
+  modal.querySelectorAll(".picker-buttons button").forEach(btn => {
+    btn.onclick = () => {
+      const value = btn.getAttribute("data-value");
+      setScheduleCell(day, timeSlot, value);
+      modal.remove();
+      showToast(`✅ ${day} ${timeSlot}: ${value}`);
+    };
+  });
+  
+  modal.querySelector("#pickerCustomSave").onclick = () => {
+    const value = modal.querySelector("#pickerCustomInput").value.trim();
+    setScheduleCell(day, timeSlot, value);
+    modal.remove();
+    showToast(`✅ ${day} ${timeSlot}: ${value || "tyhjennetty"}`);
+  };
+}
+
+function showToast(message) {
+  const oldToast = document.querySelector(".toast-notification");
+  if (oldToast) oldToast.remove();
+  
+  const toast = document.createElement("div");
+  toast.className = "toast-notification";
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => toast.classList.add("show"), 10);
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
+
+// ========== MAALAUSMOODIN TOIMINNOT ==========
+function enterPaintingMode(value, buttonElement) {
+  paintingMode = true;
+  selectedValue = value;
+  
+  // Poista aktiivisuus kaikista maalausnapeista
+  document.querySelectorAll('.paint-btn').forEach(btn => {
+    btn.classList.remove('active-paint');
+  });
+  
+  // Lisää aktiivisuus valitulle napille
+  buttonElement.classList.add('active-paint');
+  
+  // Vaihda kursorin tyyliä
+  document.body.style.cursor = 'crosshair';
+  
+  // Lisää ohje
+  showToast(`🎨 MAALAUSMOODI AKTIIVINEN: "${value}"\nKlikkaa soluja maalataksesi. ESC poistaa moodin.`, 4000);
+}
+
+function exitPaintingMode() {
+  paintingMode = false;
+  selectedValue = "";
+  document.querySelectorAll('.paint-btn').forEach(btn => {
+    btn.classList.remove('active-paint');
+  });
+  document.body.style.cursor = '';
+  showToast(`✅ Maalausmoodi poistettu`);
+}
+
+// Pikavalintojen alustus maalausmoodilla
+function initQuickButtons() {
+  // Poista vanhat
+  const container = document.querySelector(".quick-buttons");
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  const items = [
+    // Oppiaineet
+    "📐 Matematiikka", "📐 Matematiikka kertaus", "🇬🇧 Englanti", "🇬🇧 Englanti kertaus",
+    "🇸🇪 Ruotsi", "📖 Äidinkieli", "📖 Äidinkieli kertaus", "🧪 Kemia", "⚛️ Fysiikka",
+    "🧬 Biologia", "📜 Historia", "🧠 Psykologia", "💭 Filosofia", "🏛️ Yhteiskuntaoppi",
+    "✝️ Uskonto", "🌍 Maantiede", "💚 Terveystieto",
+    // Toiminnot
+    "🍽️ LOUNAS", "😴 LEPO", "✨ VAPAA", "🔄 KERTAUS", "📝 TEHTÄVÄT", "🎧 KUUNTELE"
+  ];
+  
+  items.forEach(item => {
+    const btn = document.createElement("button");
+    btn.className = "quick-btn paint-btn";
+    btn.textContent = item;
+    btn.setAttribute("data-value", item);
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      enterPaintingMode(item, btn);
+    };
+    container.appendChild(btn);
+  });
+  
+  // Lisää poistumisnappi
+  const exitBtn = document.createElement("button");
+  exitBtn.className = "quick-btn exit-paint-btn";
+  exitBtn.textContent = "🚫 Poistu maalausmoodista";
+  exitBtn.onclick = exitPaintingMode;
+  container.appendChild(exitBtn);
+}
+
+// ESC-näppäin poistaa maalausmoodin
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && paintingMode) {
+    exitPaintingMode();
+  }
+});
+
+function loadAnnaSchedule() {
+  if (confirm("Lataa Annan mallilukujärjestys? Nykyinen järjestys korvataan.")) {
+    currentSchedule = JSON.parse(JSON.stringify(defaultSchedule));
+    saveScheduleToStorage();
+    renderTimetable();
+    showToast("✅ Annan mallilukujärjestys ladattu!");
+  }
+}
+
+function clearSchedule() {
+  if (confirm("Tyhjennetäänkö koko lukujärjestys?")) {
+    for (let day of DAYS) {
+      currentSchedule[day] = {};
+      for (let time of HOURS) {
+        currentSchedule[day][time] = "";
+      }
+    }
+    saveScheduleToStorage();
+    renderTimetable();
+    showToast("🗑️ Lukujärjestys tyhjennetty");
+  }
+}
+
+function exportSchedule() {
+  const dataStr = JSON.stringify(currentSchedule, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `lukujarjestys_${new Date().toISOString().slice(0,19)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("💾 Lukujärjestys viety JSON-tiedostoon");
+}
+
+function importSchedule(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (typeof imported === "object" && imported !== null) {
+        currentSchedule = imported;
+        saveScheduleToStorage();
+        renderTimetable();
+        showToast("📂 Lukujärjestys tuotu onnistuneesti!");
+      } else {
+        throw new Error("Virheellinen tiedostomuoto");
+      }
+    } catch(err) {
+      alert("Virhe: Tiedosto ei ole kelvollinen lukujärjestys-JSON.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Motivaatiolauseet
+const motivationQuotes = [
+  "Menestys ei ole sattumaa. Se on kovaa työtä, sinnikkyyttä ja oppimista.",
+  "Jokainen tunti on askel lähempänä tavoitetta. Pysy vahvana! 💪",
+  "Yo-koetta ei pelätä, sitä harjoitellaan. Sinä pystyt tähän!",
+  "Pienikin askel eteenpäin on voitto. Jatka samaan malliin!",
+  "Tämäkin päivä on mahdollisuus tulla paremmaksi kuin eilen.",
+  "Kun tahtoo tarpeeksi, keinoja löytyy. Usko itseesi!",
+  "Jokainen opiskeltu asia on siemen tulevaisuuden menestykselle.",
+  "Tee tänään jotain, mistä huominen sinut kiittää.",
+  "Et voi voittaa, jos et aloita. Olet jo aloittanut - hienoa!",
+  "Vaikeimmat hetket erottavat tekijät haaveilijoista. Sinä olet tekijä!"
+];
+
+// ========== Lataus ja tallennus ==========
+function loadData() {
+  const saved = localStorage.getItem("custom_exams_data");
+  if (saved) {
+    exams = JSON.parse(saved);
+    nextId = Math.max(0, ...exams.map(e => e.id), 0) + 1;
+  } else {
+    exams = [];
+    nextId = 1;
+  }
+}
+
+function saveData() {
+  localStorage.setItem("custom_exams_data", JSON.stringify(exams));
+}
+
+// ========== APUFUNKTIOT ==========
+function updateStreak(exam, addedDate = new Date()) {
+  const todayStr = addedDate.toDateString();
+  if (!exam.streak?.lastDate || new Date(exam.streak.lastDate).toDateString() !== todayStr) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (exam.streak?.lastDate && new Date(exam.streak.lastDate).toDateString() === yesterday.toDateString()) {
+      exam.streak.count = (exam.streak.count || 0) + 1;
+    } else {
+      exam.streak = exam.streak || { lastDate: null, count: 0 };
+      exam.streak.count = 1;
+    }
+    exam.streak.lastDate = addedDate.toISOString();
+  }
+  if (!exam.streak) exam.streak = { lastDate: addedDate.toISOString(), count: 1 };
+}
+
+function addStudyToExam(examId, hours) {
+  const exam = exams.find(e => e.id === examId);
+  if (!exam) return;
+  if (isNaN(hours) || hours <= 0) hours = 1;
+  const now = new Date();
+  exam.studied += hours;
+  exam.history = exam.history || [];
+  exam.history.unshift({ value: hours, time: now.toLocaleString('fi-FI'), timestamp: now.getTime() });
+  if (exam.history.length > 12) exam.history.pop();
+  updateStreak(exam, now);
+  saveData();
+  renderAllExams();
+  updateAISummary();
+}
+
+function quickAdd(examId, hours) {
+  addStudyToExam(examId, hours);
+}
+
+function resetExam(examId) {
+  if (!confirm("Nollataanko kaikki tunnit tästä kokeesta?")) return;
+  const exam = exams.find(e => e.id === examId);
+  if (exam) {
+    exam.studied = 0;
+    exam.history = [];
+    exam.streak = { lastDate: null, count: 0 };
+    saveData();
+    renderAllExams();
+    updateAISummary();
+  }
+}
+
+function deleteExam(examId) {
+  if (!confirm("Poistetaanko tämä koe?")) return;
+  exams = exams.filter(e => e.id !== examId);
+  saveData();
+  renderAllExams();
+  updateAISummary();
+}
+
+function addExamFromSelect() {
+  const select = document.getElementById("examSelect");
+  const selectedValue = select.value;
+  if (!selectedValue) {
+    alert("Valitse aine listasta!");
+    return;
+  }
+  const [name, date, targetHours] = selectedValue.split("|");
+  if (exams.some(e => e.name === name)) {
+    alert(`"${name}" on jo lisätty!`);
+    return;
+  }
+  const newExam = {
+    id: nextId++,
+    name: name,
+    date: date,
+    targetHours: parseFloat(targetHours),
+    studied: 0,
+    history: [],
+    streak: { lastDate: null, count: 0 }
+  };
+  exams.push(newExam);
+  saveData();
+  renderAllExams();
+  updateAISummary();
+  select.value = "";
+  alert(`✅ "${name}" lisätty!`);
+}
+
+function addCustomExam() {
+  const name = document.getElementById("customExamName").value.trim();
+  const date = document.getElementById("customExamDate").value;
+  const target = parseFloat(document.getElementById("customExamTarget").value);
+  if (!name || !date || isNaN(target) || target <= 0) {
+    alert("Täytä kaikki kentät!");
+    return;
+  }
+  if (exams.some(e => e.name === name)) {
+    alert(`"${name}" on jo lisätty!`);
+    return;
+  }
+  const newExam = {
+    id: nextId++,
+    name: name,
+    date: date + ":00",
+    targetHours: target,
+    studied: 0,
+    history: [],
+    streak: { lastDate: null, count: 0 }
+  };
+  exams.push(newExam);
+  saveData();
+  renderAllExams();
+  updateAISummary();
+  document.getElementById("customExamName").value = "";
+  document.getElementById("customExamDate").value = "2026-09-16T09:00";
+  document.getElementById("customExamTarget").value = "40";
+  document.getElementById("customExamForm").style.display = "none";
+  alert(`✅ "${name}" lisätty!`);
+}
+
+// ========== AI YHTEENVETO ==========
+function updateAISummary() {
+  const container = document.getElementById("aiSummaryContent");
+  if (!container) return;
+  
+  if (exams.length === 0) {
+    container.innerHTML = `<p>✨ Lisää kokeita nähdäksesi AI-analyysin edistymisestäsi.</p>`;
+    return;
+  }
+  
+  const totalTarget = exams.reduce((sum, e) => sum + e.targetHours, 0);
+  const totalStudied = exams.reduce((sum, e) => sum + e.studied, 0);
+  const totalProgress = (totalStudied / totalTarget) * 100;
+  const avgStreak = Math.floor(exams.reduce((sum, e) => sum + (e.streak?.count || 0), 0) / exams.length);
+  
+  const finishedExams = exams.filter(e => e.studied >= e.targetHours).length;
+  const bestExam = exams.reduce((best, e) => (e.studied / e.targetHours) > (best.studied / best.targetHours) ? e : best, exams[0]);
+  const worstExam = exams.reduce((worst, e) => (e.studied / e.targetHours) < (worst.studied / worst.targetHours) ? e : worst, exams[0]);
+  
+  let motivationMessage = "";
+  if (totalProgress >= 80) motivationMessage = "🎉 Mahtavaa! Olet erinomaisella tiellä kohti kokeita! Jatka samaan malliin!";
+  else if (totalProgress >= 50) motivationMessage = "💪 Hyvä vauhti! Pysy aikataulussa ja kiristä tarvittaessa!";
+  else if (totalProgress >= 25) motivationMessage = "🌱 Hyvä alku! Nyt on aika nostaa panoksia - jokainen tunti on tärkeä!";
+  else motivationMessage = "⚡ Nyt on aika aloittaa tosissaan! Pienikin alku on parempi kuin ei mitään. Sinä pystyt!";
+  
+  const aiSuggestion = getAISuggestion();
+  
+  container.innerHTML = `
+    <div class="ai-stats-grid">
+      <div class="ai-stat-card">📊 Yhteensä: ${totalStudied.toFixed(1)} / ${totalTarget} h</div>
+      <div class="ai-stat-card">📈 Kokonaisprogressi: ${totalProgress.toFixed(1)}%</div>
+      <div class="ai-stat-card">🔥 Keskimääräinen putki: ${avgStreak} päivää</div>
+      <div class="ai-stat-card">🏆 Valmiit kokeet: ${finishedExams}/${exams.length}</div>
+    </div>
+    <div class="ai-stat-card" style="margin-top: 10px;">
+      <strong>⭐ Vahvin aine:</strong> ${bestExam?.name || "-"} (${((bestExam?.studied / bestExam?.targetHours)*100 || 0).toFixed(1)}%)<br>
+      <strong>⚠️ Kehitettävä:</strong> ${worstExam?.name || "-"} (${((worstExam?.studied / worstExam?.targetHours)*100 || 0).toFixed(1)}%)
+    </div>
+    <div style="margin-top: 12px; padding: 10px; background: rgba(45,212,191,0.15); border-radius: 1rem;">
+      <strong>🤖 AI-suositus:</strong> ${aiSuggestion}
+    </div>
+    <div style="margin-top: 10px; padding: 8px; background: rgba(139,92,246,0.15); border-radius: 1rem; text-align: center;">
+      💡 ${motivationMessage}
+    </div>
+  `;
+}
+
+function getAISuggestion() {
+  const now = new Date();
+  const upcomingExams = exams.filter(e => new Date(e.date) > now).sort((a,b) => new Date(a.date) - new Date(b.date));
+  if (upcomingExams.length === 0) return "Kaikki kokeet ovat ohi! Toivottavasti meni hyvin! 🎓";
+  
+  const nextExam = upcomingExams[0];
+  const daysLeft = Math.ceil((new Date(nextExam.date) - now) / (1000 * 3600 * 24));
+  const neededDaily = Math.max(0, (nextExam.targetHours - nextExam.studied) / Math.max(1, daysLeft));
+  
+  if (neededDaily > 4) {
+    return `⚠️ ${nextExam.name} on ${daysLeft} päivän päästä! Tarvitset ${neededDaily.toFixed(1)}h/päivä. Keskity nyt tähän!`;
+  } else if (neededDaily > 2) {
+    return `📚 ${nextExam.name} vaatii ${neededDaily.toFixed(1)}h/päivä. Tee päivittäinen rutiini ja pysy aikataulussa.`;
+  } else {
+    return `✅ ${nextExam.name} on hyvällä mallilla! Jatka rauhallista kertausta ja tee vanhoja yo-tehtäviä.`;
+  }
+}
+
+// ========== TILASTOT MODAALIIN ==========
+function showStatsModal() {
+  const content = document.getElementById("statsContent");
+  if (!content) return;
+  
+  const totalTarget = exams.reduce((sum, e) => sum + e.targetHours, 0);
+  const totalStudied = exams.reduce((sum, e) => sum + e.studied, 0);
+  const avgStreak = exams.length ? Math.floor(exams.reduce((sum, e) => sum + (e.streak?.count || 0), 0) / exams.length) : 0;
+  const bestStreak = exams.length ? Math.max(...exams.map(e => e.streak?.count || 0)) : 0;
+  
+  const studyDays = [...new Set(exams.flatMap(e => e.history?.map(h => new Date(h.timestamp).toDateString()) || []))].length;
+  
+  content.innerHTML = `
+    <div class="ai-stats-grid">
+      <div class="ai-stat-card">📚 Opiskeltu yhteensä: ${totalStudied.toFixed(1)} tuntia</div>
+      <div class="ai-stat-card">🎯 Tavoite yhteensä: ${totalTarget} tuntia</div>
+      <div class="ai-stat-card">📊 Kokonaisprogressi: ${((totalStudied/totalTarget)*100 || 0).toFixed(1)}%</div>
+      <div class="ai-stat-card">📅 Opiskelupäiviä: ${studyDays}</div>
+      <div class="ai-stat-card">🔥 Keskimääräinen putki: ${avgStreak} pv</div>
+      <div class="ai-stat-card">🏆 Paras putki: ${bestStreak} pv</div>
+    </div>
+    <div style="margin-top: 1rem;">
+      <h4>📊 Koekohtaiset tilastot:</h4>
+      ${exams.map(e => `
+        <div style="margin: 8px 0; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 0.8rem;">
+          <strong>${escapeHtml(e.name)}</strong><br>
+          📖 ${e.studied.toFixed(1)} / ${e.targetHours} h (${((e.studied/e.targetHours)*100).toFixed(1)}%)<br>
+          🔥 Putki: ${e.streak?.count || 0} pv | ✏️ ${e.history?.length || 0} lukukertaa
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ========== MOTIVAATIO ==========
+function showMotivationModal() {
+  const randomQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
+  document.getElementById("motivationText").innerHTML = `"${randomQuote}"`;
+}
+
+// ========== AJASTIN & LASKURIT ==========
+function formatTimeLeft(ms) {
+  if (ms <= 0) return "⌛ KOE ALKANUT!";
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${h}h ${m}m ${s}s`;
+}
+
+function getTimeProgress(examDate) {
+  const examTime = new Date(examDate).getTime();
+  const now = Date.now();
+  const total = examTime - startDate.getTime();
+  const elapsed = now - startDate.getTime();
+  if (total <= 0) return 100;
+  return Math.min(100, Math.max(0, (elapsed / total) * 100));
+}
+
+function getDailyNeed(exam) {
+  const now = new Date();
+  const examDateTime = new Date(exam.date).getTime();
+  const daysLeft = Math.max(0.1, (examDateTime - now) / (1000 * 3600 * 24));
+  return Math.max(0, exam.targetHours - exam.studied) / daysLeft;
+}
+
+function getGradePrediction(projected, target) {
+  if (projected >= target * 1.1) return { grade: "L / E", emoji: "🏆", color: "#4ade80", msg: "Erinomainen!" };
+  if (projected >= target) return { grade: "E / M", emoji: "💪", color: "#2dd4bf", msg: "Tavoite saavutettavissa" };
+  if (projected >= target * 0.7) return { grade: "C / M", emoji: "⚠️", color: "#facc15", msg: "Kiristä tahtia" };
+  if (projected >= target * 0.4) return { grade: "I / C", emoji: "😰", color: "#fb923c", msg: "Vakava riski" };
+  return { grade: "I (hylätty)", emoji: "💀", color: "#f87171", msg: "Kriittinen vaje" };
+}
+
+function computeProjected(exam) {
+  const now = new Date();
+  const examTime = new Date(exam.date).getTime();
+  const totalPeriod = examTime - startDate.getTime();
+  const elapsed = now - startDate.getTime();
+  const timeProgress = totalPeriod > 0 ? Math.min(1, Math.max(0.01, elapsed / totalPeriod)) : 0.5;
+  const progressRatio = exam.studied / exam.targetHours;
+  let projected = exam.targetHours;
+  if (timeProgress > 0) projected = (progressRatio / timeProgress) * exam.targetHours;
+  if (isNaN(projected) || !isFinite(projected)) projected = exam.studied;
+  return projected;
+}
+
+// ========== RENDERÖINTI ==========
+function renderAllExams() {
+  const container = document.getElementById("examsContainer");
+  if (!container) return;
+  
+  if (exams.length === 0) {
+    container.innerHTML = `<div style="background: var(--card-dark); border-radius: 2rem; padding: 2rem; text-align: center;">
+      ✨ Ei vielä kokeita. Valitse aine ylhäältä!
+    </div>`;
+    return;
+  }
+  
+  const now = new Date();
+  let html = "";
+  exams.forEach(exam => {
+    const examDateObj = new Date(exam.date);
+    const timeLeftMs = examDateObj - now;
+    const timePercent = getTimeProgress(exam.date);
+    const studiedPercent = (exam.studied / exam.targetHours) * 100;
+    const daily = getDailyNeed(exam);
+    const projected = computeProjected(exam);
+    const pred = getGradePrediction(projected, exam.targetHours);
+    const statusText = exam.studied > (timePercent/100 * exam.targetHours) ? "🔥 Edellä" : "⚠️ Jäljessä";
+    
+    let historyHtml = "";
+    (exam.history || []).slice(0, 6).forEach(h => {
+      historyHtml += `<li>➕ +${h.value}h (${h.time})</li>`;
+    });
+    if (!exam.history?.length) historyHtml = "<li>📘 Ei vielä kirjauksia</li>";
+    
+    html += `
+      <div class="exam-card" id="exam-card-${exam.id}">
+        <div class="exam-header">
+          <div class="exam-title">${escapeHtml(exam.name)}</div>
+          <div class="exam-actions">
+            <button class="small-btn" onclick="editExam(${exam.id})">✏️ Muokkaa</button>
+            <button class="small-btn danger-btn" onclick="deleteExam(${exam.id})">🗑️ Poista</button>
+          </div>
+        </div>
+        <div class="big-timer" id="timer-${exam.id}">${formatTimeLeft(timeLeftMs)}</div>
+        <div class="progress-row"><span>📅 ${examDateObj.toLocaleDateString('fi-FI')} klo ${examDateObj.getHours().toString().padStart(2,'0')}:${examDateObj.getMinutes().toString().padStart(2,'0')}</span><span>${Math.floor(timePercent)}% ajasta</span></div>
+        <div class="progress-bar-bg"><div class="progress-fill" style="width: ${timePercent}%;"></div></div>
+        <div class="progress-row"><span>📖 Tavoite ${exam.targetHours}h</span><span>${exam.studied.toFixed(1)} / ${exam.targetHours} h</span></div>
+        <div class="progress-bar-bg"><div class="progress-fill study-fill" style="width: ${Math.min(100, studiedPercent)}%;"></div></div>
+        <div class="input-group">
+          <input type="number" id="hoursInput_${exam.id}" step="0.5" placeholder="tunnit" value="1">
+          <button onclick="addStudyToExam(${exam.id}, parseFloat(document.getElementById('hoursInput_${exam.id}').value))">➕ Lisää</button>
+          <button class="small" onclick="quickAdd(${exam.id}, 1)">+1h</button>
+          <button class="small" onclick="quickAdd(${exam.id}, 0.5)">+30min</button>
+          <button class="small danger-btn" onclick="resetExam(${exam.id})">Nollaa</button>
+        </div>
+        <div class="stats-row">
+          <span class="stat-badge">🎯 Päivätahti: ${daily.toFixed(1)} h</span>
+          <span class="stat-badge">🔥 Putki: ${exam.streak?.count || 0} pv</span>
+          <span class="stat-badge">${statusText}</span>
+        </div>
+        <ul class="history-list">${historyHtml}</ul>
+        <div class="ai-insight">
+          <div style="border-left: 4px solid ${pred.color}; padding-left: 8px;">
+            <strong>${pred.emoji} ${pred.grade}</strong> - ${pred.msg}<br>
+            📈 Ennuste: ${projected.toFixed(1)}h / ${exam.targetHours}h
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function updateTimersOnly() {
+  const now = new Date();
+  exams.forEach(exam => {
+    const timerElement = document.getElementById(`timer-${exam.id}`);
+    if (timerElement) {
+      const examDateObj = new Date(exam.date);
+      const timeLeftMs = examDateObj - now;
+      timerElement.textContent = formatTimeLeft(timeLeftMs);
+    }
+  });
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+window.editExam = function(examId) {
+  const exam = exams.find(e => e.id === examId);
+  if (!exam) return;
+  const newName = prompt("Uusi nimi:", exam.name);
+  const newDate = prompt("Uusi päivämäärä (YYYY-MM-DDTHH:MM):", exam.date.slice(0,16));
+  const newTarget = prompt("Uusi tavoite (tunteja):", exam.targetHours);
+  if (newName?.trim()) exam.name = newName.trim();
+  if (newDate && !isNaN(new Date(newDate).getTime())) exam.date = newDate + ":00";
+  if (newTarget && !isNaN(parseFloat(newTarget)) && parseFloat(newTarget) > 0) exam.targetHours = parseFloat(newTarget);
+  saveData();
+  renderAllExams();
+  updateAISummary();
+};
+
+// ========== TEEMA & MODAALIT ==========
+function initTheme() {
+  const isLight = localStorage.getItem("ultra_theme") === "light";
+  if (isLight) document.body.classList.add("light");
+  document.getElementById("themeToggle").onclick = () => {
+    document.body.classList.toggle("light");
+    localStorage.setItem("ultra_theme", document.body.classList.contains("light") ? "light" : "dark");
+  };
+}
+
+function initModals() {
+  const motivationModal = document.getElementById("motivationModal");
+  const statsModal = document.getElementById("statsModal");
+  const resourcesModal = document.getElementById("resourcesModal");
+  
+  document.getElementById("motivationBtn").onclick = () => {
+    showMotivationModal();
+    motivationModal.style.display = "block";
+  };
+  document.getElementById("statsModalBtn").onclick = () => {
+    showStatsModal();
+    statsModal.style.display = "block";
+  };
+  document.getElementById("resourcesBtn").onclick = () => {
+    resourcesModal.style.display = "block";
+  };
+  
+  document.querySelectorAll(".close-modal, .close-modal-stats, .close-modal-resources").forEach(btn => {
+    btn.onclick = () => {
+      motivationModal.style.display = "none";
+      statsModal.style.display = "none";
+      resourcesModal.style.display = "none";
+    };
+  });
+  window.onclick = (e) => {
+    if (e.target === motivationModal) motivationModal.style.display = "none";
+    if (e.target === statsModal) statsModal.style.display = "none";
+    if (e.target === resourcesModal) resourcesModal.style.display = "none";
+  };
+  document.getElementById("newMotivationBtn").onclick = () => {
+    showMotivationModal();
+  };
+}
+
+// ========== LUKUJÄRJESTYKSEN NAPPIEN ALUSTUS ==========
+function initTimetableButtons() {
+  const loadBtn = document.getElementById("loadAnnaScheduleBtn");
+  const clearBtn = document.getElementById("clearScheduleBtn");
+  const exportBtn = document.getElementById("exportScheduleBtn");
+  const importBtn = document.getElementById("importScheduleBtn");
+  const importFile = document.getElementById("importScheduleFile");
+  
+  if (loadBtn) loadBtn.onclick = loadAnnaSchedule;
+  if (clearBtn) clearBtn.onclick = clearSchedule;
+  if (exportBtn) exportBtn.onclick = exportSchedule;
+  if (importBtn) {
+    importBtn.onclick = () => importFile.click();
+  }
+  if (importFile) {
+    importFile.onchange = (e) => {
+      if (e.target.files.length > 0) {
+        importSchedule(e.target.files[0]);
+        importFile.value = "";
+      }
+    };
+  }
+  initQuickButtons();
+}
+
+// ========== AUTOMAATIO ==========
+let interval;
+function startAutoRefresh() {
+  if (interval) clearInterval(interval);
+  interval = setInterval(() => {
+    updateTimersOnly();
+  }, 1000);
+}
+
+// ========== GLOBAALIT FUNKTIOT ==========
+window.addStudyToExam = addStudyToExam;
+window.quickAdd = quickAdd;
+window.resetExam = resetExam;
+window.deleteExam = deleteExam;
+window.editExam = editExam;
+window.openPicker = openPicker;
+window.clearScheduleCell = clearScheduleCell;
+
+// ========== SIVUN LATAUS ==========
+document.addEventListener("DOMContentLoaded", function() {
+  loadData();
+  loadScheduleFromStorage();
+  initTheme();
+  initModals();
+  initTimetableButtons();
+  renderAllExams();
+  renderTimetable();
+  updateAISummary();
+  startAutoRefresh();
+  
+  document.getElementById("addSelectedExamBtn").addEventListener("click", addExamFromSelect);
+  document.getElementById("addCustomExamBtn").addEventListener("click", addCustomExam);
+  document.getElementById("showCustomFormBtn").addEventListener("click", function() {
+    const form = document.getElementById("customExamForm");
+    form.style.display = form.style.display === "none" ? "flex" : "none";
+  });
+});

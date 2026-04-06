@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>YO Ultra Planner 2026 | Älykäs lukusuunnitelma</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="glass-header">
+  <div class="logo-area">
+    <h1>📘 YO ULTRA PLANNER • 2026</h1>
+    <span class="badge">⚡ AI-tehostettu</span>
+  </div>
+  <div class="header-actions">
+    <button id="motivationBtn" class="icon-btn">💪 Motivaatio</button>
+    <button id="statsModalBtn" class="icon-btn">📊 Tilastot</button>
+    <button id="resourcesBtn" class="icon-btn">🔗 Resurssit</button>
+    <button id="themeToggle" class="icon-btn">🌓 Teema</button>
+  </div>
+</header>
+
+<div class="dashboard">
+  <!-- Lisäysalue -->
+  <div class="add-exam-panel glass-card">
+    <h3>➕ Lisää uusi koe</h3>
+    <div class="add-exam-form">
+      <select id="examSelect">
+        <option value="">-- Valitse aine --</option>
+        <optgroup label="MA 14.9.2026">
+          <option value="Äidinkieli (lukutaito)|2026-09-14T09:00|40">📖 Äidinkieli ja kirjallisuus, lukutaidon koe (14.9.)</option>
+        </optgroup>
+        <optgroup label="KE 16.9.2026">
+          <option value="Uskonto|2026-09-16T09:00|35">✝️ Uskonto (16.9.)</option>
+          <option value="Elämänkatsomustieto|2026-09-16T09:00|35">🌱 Elämänkatsomustieto (16.9.)</option>
+          <option value="Yhteiskuntaoppi|2026-09-16T09:00|35">🏛️ Yhteiskuntaoppi (16.9.)</option>
+          <option value="Kemia|2026-09-16T09:00|45">🧪 Kemia (16.9.)</option>
+          <option value="Maantiede|2026-09-16T09:00|55">🌍 Maantiede (16.9.)</option>
+          <option value="Terveystieto|2026-09-16T09:00|35">💚 Terveystieto (16.9.)</option>
+        </optgroup>
+        <optgroup label="PE 18.9.2026 (pitkä)">
+          <option value="Englanti (pitkä)|2026-09-18T09:00|50">🇬🇧 Englanti, pitkä (18.9.)</option>
+          <option value="Ranska (pitkä)|2026-09-18T09:00|50">🇫🇷 Ranska, pitkä (18.9.)</option>
+          <option value="Espanja (pitkä)|2026-09-18T09:00|50">🇪🇸 Espanja, pitkä (18.9.)</option>
+          <option value="Saksa (pitkä)|2026-09-18T09:00|50">🇩🇪 Saksa, pitkä (18.9.)</option>
+          <option value="Venäjä (pitkä)|2026-09-18T09:00|50">🇷🇺 Venäjä, pitkä (18.9.)</option>
+        </optgroup>
+        <optgroup label="MA 21.9.2026">
+          <option value="Ruotsi (toinen kotimainen)|2026-09-21T09:00|45">🇸🇪 Toinen kotimainen, ruotsi (21.9.)</option>
+        </optgroup>
+        <optgroup label="TI 22.9.2026">
+          <option value="Psykologia|2026-09-22T09:00|40">🧠 Psykologia (22.9.)</option>
+          <option value="Filosofia|2026-09-22T09:00|35">💭 Filosofia (22.9.)</option>
+          <option value="Historia|2026-09-22T09:00|45">📜 Historia (22.9.)</option>
+          <option value="Fysiikka|2026-09-22T09:00|50">⚛️ Fysiikka (22.9.)</option>
+          <option value="Biologia|2026-09-22T09:00|50">🧬 Biologia (22.9.)</option>
+        </optgroup>
+        <optgroup label="TO 24.9.2026">
+          <option value="Matematiikka (pitkä)|2026-09-24T09:00|60">📐 Matematiikka, pitkä (24.9.)</option>
+          <option value="Matematiikka (lyhyt)|2026-09-24T09:00|55">📊 Matematiikka, lyhyt (24.9.)</option>
+        </optgroup>
+        <optgroup label="PE 25.9.2026">
+          <option value="Äidinkieli (kirjoitustaito)|2026-09-25T09:00|40">✍️ Äidinkieli, kirjoitustaito (25.9.)</option>
+          <option value="Suomi toisena kielenä|2026-09-25T09:00|45">🇫🇮 Suomi S2 (25.9.)</option>
+        </optgroup>
+        <optgroup label="MA 28.9.2026 (lyhyt)">
+          <option value="Englanti (lyhyt)|2026-09-28T09:00|45">🇬🇧 Englanti, lyhyt (28.9.)</option>
+          <option value="Ranska (lyhyt)|2026-09-28T09:00|45">🇫🇷 Ranska, lyhyt (28.9.)</option>
+          <option value="Espanja (lyhyt)|2026-09-28T09:00|45">🇪🇸 Espanja, lyhyt (28.9.)</option>
+          <option value="Saksa (lyhyt)|2026-09-28T09:00|45">🇩🇪 Saksa, lyhyt (28.9.)</option>
+          <option value="Italia|2026-09-28T09:00|45">🇮🇹 Italia (28.9.)</option>
+          <option value="Latina|2026-09-28T09:00|45">🏛️ Latina (28.9.)</option>
+        </optgroup>
+      </select>
+      <button id="addSelectedExamBtn" class="primary-btn animate-btn">➕ Lisää valittu</button>
+    </div>
+    <div class="custom-exam-link">
+      <button id="showCustomFormBtn" class="secondary-btn">✏️ Tai lisää oma koe</button>
+    </div>
+    <div id="customExamForm" style="display: none;" class="custom-form">
+      <input type="text" id="customExamName" placeholder="Kokeen nimi">
+      <input type="datetime-local" id="customExamDate" value="2026-09-16T09:00">
+      <input type="number" id="customExamTarget" placeholder="Tavoitetunnit" value="40">
+      <button id="addCustomExamBtn">✅ Lisää</button>
+    </div>
+  </div>
+
+  <!-- Yhteenveto-paneeli (AI stats) -->
+  <div class="summary-panel glass-card" id="aiSummaryPanel">
+    <div class="summary-header">
+      <h3>🤖 AI YHTEENVETO</h3>
+      <span class="live-badge">LIVE-analytiikka</span>
+    </div>
+    <div id="aiSummaryContent">
+      <div class="loading-spinner"></div>
+    </div>
+  </div>
+
+  <!-- LUKUJÄRJESTYS - PARANNELTU VERSIO -->
+  <div class="timetable-panel glass-card">
+    <div class="timetable-header">
+      <h3>📅 VIIKKOLUKUJÄRJESTYS</h3>
+      <div class="timetable-actions">
+        <button id="loadAnnaScheduleBtn" class="small-btn">👩‍🎓 Annan malli</button>
+        <button id="clearScheduleBtn" class="small-btn">🗑️ Tyhjennä</button>
+        <button id="exportScheduleBtn" class="small-btn">💾 Vie JSON</button>
+        <button id="importScheduleBtn" class="small-btn">📂 Tuo JSON</button>
+        <input type="file" id="importScheduleFile" accept=".json" style="display: none;">
+      </div>
+    </div>
+    
+    <!-- Pikavalinnat -->
+    <div class="quick-actions">
+      <span class="quick-label">⚡ Pikavalinnat:</span>
+      <div class="quick-buttons">
+        <button class="quick-btn" data-value="📐 Matematiikka">📐 Matematiikka</button>
+        <button class="quick-btn" data-value="🇬🇧 Englanti">🇬🇧 Englanti</button>
+        <button class="quick-btn" data-value="🇸🇪 Ruotsi">🇸🇪 Ruotsi</button>
+        <button class="quick-btn" data-value="📖 Äidinkieli">📖 Äidinkieli</button>
+        <button class="quick-btn" data-value="🧪 Kemia">🧪 Kemia</button>
+        <button class="quick-btn" data-value="⚛️ Fysiikka">⚛️ Fysiikka</button>
+        <button class="quick-btn" data-value="🧬 Biologia">🧬 Biologia</button>
+        <button class="quick-btn" data-value="📜 Historia">📜 Historia</button>
+        <button class="quick-btn" data-value="🧠 Psykologia">🧠 Psykologia</button>
+        <button class="quick-btn" data-value="💭 Filosofia">💭 Filosofia</button>
+        <button class="quick-btn" data-value="🍽️ LOUNAS">🍽️ LOUNAS</button>
+        <button class="quick-btn" data-value="😴 LEPO">😴 LEPO</button>
+        <button class="quick-btn" data-value="✨ VAPAA">✨ VAPAA</button>
+        <button class="quick-btn" data-value="🔄 KERTAUS">🔄 KERTAUS</button>
+        <button class="quick-btn" data-value="📝 TEHTÄVÄT">📝 TEHTÄVÄT</button>
+        <button class="quick-btn" data-value="🎧 KUUNTELE">🎧 KUUNTELE</button>
+      </div>
+    </div>
+    
+    <div class="timetable-container">
+      <table class="timetable" id="timetable">
+        <thead>
+          <tr>
+            <th>Aika</th>
+            <th>Maanantai</th>
+            <th>Tiistai</th>
+            <th>Keskiviikko</th>
+            <th>Torstai</th>
+            <th>Perjantai</th>
+            <th>Lauantai</th>
+            <th>Sunnuntai</th>
+          </tr>
+        </thead>
+        <tbody id="timetableBody"></tbody>
+      </table>
+    </div>
+    <div class="timetable-footer">
+      <p>💡 <strong>Vinkit:</strong> Klikkaa solua muokataksesi - voit valita pikavalinnoista tai kirjoittaa oman tekstin. Hover tuo esiin toimintopainikkeet. Värikoodaus helpottaa hahmottamista!</p>
+      <p>✨ Noudattamalla suunnitelmaa opiskelu tuntuu selkeämmältä! Iltapäivän vapaa-aika rentouttaa niin hyvin, että aamuisin on helpompi tarttua tehtäviin.</p>
+    </div>
+  </div>
+
+  <!-- Kokeet -->
+  <div id="examsContainer" class="exams-grid"></div>
+</div>
+
+<!-- Motivaatio-modaali -->
+<div id="motivationModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <h2>💪 Päivän motivaatio</h2>
+    <div id="motivationText" class="motivation-text"></div>
+    <button id="newMotivationBtn" class="primary-btn">🔄 Uusi motivaatio</button>
+  </div>
+</div>
+
+<!-- Tilastot-modaali -->
+<div id="statsModal" class="modal">
+  <div class="modal-content modal-large">
+    <span class="close-modal-stats">&times;</span>
+    <h2>📊 YO-EDISTYMISEN TILASTOT</h2>
+    <div id="statsContent"></div>
+  </div>
+</div>
+
+<!-- Resurssit-modaali -->
+<div id="resourcesModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal-resources">&times;</span>
+    <h2>🔗 Hyödyllisiä YO-linkkejä</h2>
+    <div class="resources-grid">
+      <a href="https://www.ylioppilastutkinto.fi/" target="_blank" class="resource-card">📜 YTL virallinen sivu</a>
+      <a href="https://abitti.fi/" target="_blank" class="resource-card">💻 Abitti-koejärjestelmä</a>
+      <a href="https://www.study.fi/yo-kokeet" target="_blank" class="resource-card">📚 Study.fi vanhat kokeet</a>
+      <a href="https://kielikoulu.fi/yo-englanti" target="_blank" class="resource-card">🇬🇧 Englannin YO-vinkit</a>
+      <a href="https://matematiikkalehtio.fi/yo-tehtavat/" target="_blank" class="resource-card">📐 Matematiikan tehtäviä</a>
+      <a href="https://www.kahoot.com/" target="_blank" class="resource-card">🎮 Kahoot - pelillinen kertaus</a>
+      <a href="https://quizlet.com/fi-fi" target="_blank" class="resource-card">📇 Quizlet - sanastot</a>
+      <a href="https://yle.fi/aihe/oppiminen" target="_blank" class="resource-card">📺 YLE Oppiminen</a>
+    </div>
+    <p class="resource-tip">💡 Vinkki: Tee vähintään 3 vanhaa YO-koetta ennen oikeaa koetta!</p>
+  </div>
+</div>
+
+<footer>
+  ✨ YO Ultra Planner 2026 • AI-tehostettu seuranta • Mukautuva lukujärjestys • Pysy aikataulussa!
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
