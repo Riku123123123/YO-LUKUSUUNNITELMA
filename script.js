@@ -1,7 +1,8 @@
 // ========== GLOBAALI DATA ==========
 let exams = [];
 let nextId = 1;
-let startDate = new Date();
+// Asetetaan startDate kunkin kokeen lisäyshetkeen, ei globaalisti
+// Tämä korjaa ennustelaskennan
 
 // ========== LUKUJÄRJESTYS DATA - LAAJENNETUT KELLONAJAT (8-22) ==========
 const HOURS = [
@@ -108,8 +109,6 @@ function setScheduleCell(day, timeSlot, value) {
   if (!currentSchedule[day]) currentSchedule[day] = {};
   currentSchedule[day][timeSlot] = value;
   saveScheduleToStorage();
-  
-  // Päivitä vain tietty solu (ei koko taulukkoa)
   updateSingleCell(day, timeSlot, value);
 }
 
@@ -155,19 +154,15 @@ function renderTimetable() {
   }
   
   tbody.innerHTML = html;
-  
-  // Lisää klikkauskuuntelijat soluille (maalausmoodia varten)
   attachCellClickListeners();
 }
 
 function attachCellClickListeners() {
   document.querySelectorAll('.schedule-cell').forEach(cell => {
-    // Poista vanha listener
     const newCell = cell.cloneNode(true);
     cell.parentNode.replaceChild(newCell, cell);
     
     newCell.addEventListener('click', (e) => {
-      // Älä aktivoi jos klikattiin nappia
       if (e.target.classList.contains('cell-edit-btn') || 
           e.target.classList.contains('cell-clear-btn')) {
         return;
@@ -177,11 +172,9 @@ function attachCellClickListeners() {
       const time = newCell.getAttribute('data-time');
       
       if (paintingMode && selectedValue) {
-        // Maalausmoodi: aseta arvo suoraan
         setScheduleCell(day, time, selectedValue);
         showToast(`🎨 Maalattu: ${selectedValue} → ${day} ${time}`);
       } else {
-        // Normaali tila: avaa picker
         openPicker(day, time);
       }
     });
@@ -275,7 +268,7 @@ function openPicker(day, timeSlot) {
   };
 }
 
-function showToast(message) {
+function showToast(message, duration = 2000) {
   const oldToast = document.querySelector(".toast-notification");
   if (oldToast) oldToast.remove();
   
@@ -288,7 +281,7 @@ function showToast(message) {
   setTimeout(() => {
     toast.classList.remove("show");
     setTimeout(() => toast.remove(), 300);
-  }, 2000);
+  }, duration);
 }
 
 // ========== MAALAUSMOODIN TOIMINNOT ==========
@@ -296,19 +289,13 @@ function enterPaintingMode(value, buttonElement) {
   paintingMode = true;
   selectedValue = value;
   
-  // Poista aktiivisuus kaikista maalausnapeista
   document.querySelectorAll('.paint-btn').forEach(btn => {
     btn.classList.remove('active-paint');
   });
   
-  // Lisää aktiivisuus valitulle napille
   buttonElement.classList.add('active-paint');
-  
-  // Vaihda kursorin tyyliä
   document.body.style.cursor = 'crosshair';
-  
-  // Lisää ohje
-  showToast(`🎨 MAALAUSMOODI AKTIIVINEN: "${value}"\nKlikkaa soluja maalataksesi. ESC poistaa moodin.`, 4000);
+  showToast(`🎨 MAALAUSMOODI: "${value}" → klikkaa soluja`, 3000);
 }
 
 function exitPaintingMode() {
@@ -318,24 +305,20 @@ function exitPaintingMode() {
     btn.classList.remove('active-paint');
   });
   document.body.style.cursor = '';
-  showToast(`✅ Maalausmoodi poistettu`);
+  showToast(`✅ Maalausmoodi pois päältä`);
 }
 
-// Pikavalintojen alustus maalausmoodilla
 function initQuickButtons() {
-  // Poista vanhat
   const container = document.querySelector(".quick-buttons");
   if (!container) return;
   
   container.innerHTML = '';
   
   const items = [
-    // Oppiaineet
     "📐 Matematiikka", "📐 Matematiikka kertaus", "🇬🇧 Englanti", "🇬🇧 Englanti kertaus",
     "🇸🇪 Ruotsi", "📖 Äidinkieli", "📖 Äidinkieli kertaus", "🧪 Kemia", "⚛️ Fysiikka",
     "🧬 Biologia", "📜 Historia", "🧠 Psykologia", "💭 Filosofia", "🏛️ Yhteiskuntaoppi",
     "✝️ Uskonto", "🌍 Maantiede", "💚 Terveystieto",
-    // Toiminnot
     "🍽️ LOUNAS", "😴 LEPO", "✨ VAPAA", "🔄 KERTAUS", "📝 TEHTÄVÄT", "🎧 KUUNTELE"
   ];
   
@@ -351,7 +334,6 @@ function initQuickButtons() {
     container.appendChild(btn);
   });
   
-  // Lisää poistumisnappi
   const exitBtn = document.createElement("button");
   exitBtn.className = "quick-btn exit-paint-btn";
   exitBtn.textContent = "🚫 Poistu maalausmoodista";
@@ -359,7 +341,6 @@ function initQuickButtons() {
   container.appendChild(exitBtn);
 }
 
-// ESC-näppäin poistaa maalausmoodin
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && paintingMode) {
     exitPaintingMode();
@@ -529,7 +510,8 @@ function addExamFromSelect() {
     targetHours: parseFloat(targetHours),
     studied: 0,
     history: [],
-    streak: { lastDate: null, count: 0 }
+    streak: { lastDate: null, count: 0 },
+    createdAt: new Date().toISOString() // Tallenna luontiaika
   };
   exams.push(newExam);
   saveData();
@@ -558,7 +540,8 @@ function addCustomExam() {
     targetHours: target,
     studied: 0,
     history: [],
-    streak: { lastDate: null, count: 0 }
+    streak: { lastDate: null, count: 0 },
+    createdAt: new Date().toISOString()
   };
   exams.push(newExam);
   saveData();
@@ -569,6 +552,71 @@ function addCustomExam() {
   document.getElementById("customExamTarget").value = "40";
   document.getElementById("customExamForm").style.display = "none";
   alert(`✅ "${name}" lisätty!`);
+}
+
+// ========== KORJATUT LASKENTAFUNKTIOT ==========
+
+// Lasketaan päivittäinen tarve (jäljellä olevat tunnit / jäljellä olevat päivät)
+function getDailyNeed(exam) {
+  const now = new Date();
+  const examDate = new Date(exam.date);
+  
+  // Jos koe on jo mennyt
+  if (examDate <= now) return 0;
+  
+  const daysLeft = Math.max(1, Math.ceil((examDate - now) / (1000 * 3600 * 24)));
+  const hoursNeeded = Math.max(0, exam.targetHours - exam.studied);
+  
+  return hoursNeeded / daysLeft;
+}
+
+// Lasketaan realistinen ennuste nykyisen opiskelutahdin perusteella
+function computeProjected(exam) {
+  const now = new Date();
+  const examDate = new Date(exam.date);
+  
+  // Jos koe on mennyt tai ei ole opiskeltu mitään
+  if (examDate <= now) return exam.studied;
+  if (exam.studied === 0) return 0;
+  
+  const createdAt = exam.createdAt ? new Date(exam.createdAt) : new Date(exam.date);
+  const daysSinceStart = Math.max(1, Math.ceil((now - createdAt) / (1000 * 3600 * 24)));
+  const daysTotal = Math.max(1, Math.ceil((examDate - createdAt) / (1000 * 3600 * 24)));
+  
+  // Opiskelunopeus (tuntia/päivä)
+  const studyRate = exam.studied / daysSinceStart;
+  
+  // Ennuste = nykyinen + (jäljellä olevat päivät * opiskelunopeus)
+  const daysRemaining = Math.max(0, Math.ceil((examDate - now) / (1000 * 3600 * 24)));
+  const projected = exam.studied + (studyRate * daysRemaining);
+  
+  // Ennuste ei voi ylittää järjettömiä lukuja (max 2x tavoite)
+  return Math.min(projected, exam.targetHours * 2);
+}
+
+// Lasketaan aikaprosentti (kuinka paljon ajasta on kulunut)
+function getTimeProgress(exam) {
+  const now = new Date();
+  const examDate = new Date(exam.date);
+  const createdAt = exam.createdAt ? new Date(exam.createdAt) : new Date(examDate);
+  createdAt.setDate(createdAt.getDate() - 60); // Oletus: 60 päivää ennen koetta
+  
+  const total = examDate - createdAt;
+  const elapsed = now - createdAt;
+  
+  if (total <= 0) return 100;
+  return Math.min(100, Math.max(0, (elapsed / total) * 100));
+}
+
+// Parannettu arvosana-arvio
+function getGradePrediction(projected, target) {
+  const ratio = projected / target;
+  
+  if (ratio >= 0.95) return { grade: "L / E", emoji: "🏆", color: "#4ade80", msg: "Erinomainen vauhti!" };
+  if (ratio >= 0.8) return { grade: "E / M", emoji: "💪", color: "#2dd4bf", msg: "Tavoite saavutettavissa" };
+  if (ratio >= 0.6) return { grade: "C / M", emoji: "⚠️", color: "#facc15", msg: "Kiristä tahtia" };
+  if (ratio >= 0.4) return { grade: "B / C", emoji: "😰", color: "#fb923c", msg: "Tarvitset lisää opiskelua" };
+  return { grade: "I (hylätty)", emoji: "💀", color: "#f87171", msg: "Kriittinen vaje - aloita heti!" };
 }
 
 // ========== AI YHTEENVETO ==========
@@ -584,7 +632,7 @@ function updateAISummary() {
   const totalTarget = exams.reduce((sum, e) => sum + e.targetHours, 0);
   const totalStudied = exams.reduce((sum, e) => sum + e.studied, 0);
   const totalProgress = (totalStudied / totalTarget) * 100;
-  const avgStreak = Math.floor(exams.reduce((sum, e) => sum + (e.streak?.count || 0), 0) / exams.length);
+  const avgStreak = exams.length ? Math.floor(exams.reduce((sum, e) => sum + (e.streak?.count || 0), 0) / exams.length) : 0;
   
   const finishedExams = exams.filter(e => e.studied >= e.targetHours).length;
   const bestExam = exams.reduce((best, e) => (e.studied / e.targetHours) > (best.studied / best.targetHours) ? e : best, exams[0]);
@@ -624,15 +672,17 @@ function getAISuggestion() {
   if (upcomingExams.length === 0) return "Kaikki kokeet ovat ohi! Toivottavasti meni hyvin! 🎓";
   
   const nextExam = upcomingExams[0];
-  const daysLeft = Math.ceil((new Date(nextExam.date) - now) / (1000 * 3600 * 24));
-  const neededDaily = Math.max(0, (nextExam.targetHours - nextExam.studied) / Math.max(1, daysLeft));
+  const daysLeft = Math.max(1, Math.ceil((new Date(nextExam.date) - now) / (1000 * 3600 * 24)));
+  const neededDaily = (nextExam.targetHours - nextExam.studied) / daysLeft;
   
   if (neededDaily > 4) {
     return `⚠️ ${nextExam.name} on ${daysLeft} päivän päästä! Tarvitset ${neededDaily.toFixed(1)}h/päivä. Keskity nyt tähän!`;
   } else if (neededDaily > 2) {
     return `📚 ${nextExam.name} vaatii ${neededDaily.toFixed(1)}h/päivä. Tee päivittäinen rutiini ja pysy aikataulussa.`;
+  } else if (neededDaily > 0.5) {
+    return `✅ ${nextExam.name} on hyvällä mallilla! Jatka rauhallista kertausta (${neededDaily.toFixed(1)}h/päivä).`;
   } else {
-    return `✅ ${nextExam.name} on hyvällä mallilla! Jatka rauhallista kertausta ja tee vanhoja yo-tehtäviä.`;
+    return `🎉 ${nextExam.name} on hyvin hallinnassa! Kertaa kevyesti ja tee vanhoja yo-tehtäviä.`;
   }
 }
 
@@ -659,13 +709,17 @@ function showStatsModal() {
     </div>
     <div style="margin-top: 1rem;">
       <h4>📊 Koekohtaiset tilastot:</h4>
-      ${exams.map(e => `
+      ${exams.map(e => {
+        const daily = getDailyNeed(e);
+        const projected = computeProjected(e);
+        return `
         <div style="margin: 8px 0; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 0.8rem;">
           <strong>${escapeHtml(e.name)}</strong><br>
           📖 ${e.studied.toFixed(1)} / ${e.targetHours} h (${((e.studied/e.targetHours)*100).toFixed(1)}%)<br>
+          📈 Ennuste: ${projected.toFixed(1)} h | 🎯 Päivätahti: ${daily.toFixed(1)} h/pv<br>
           🔥 Putki: ${e.streak?.count || 0} pv | ✏️ ${e.history?.length || 0} lukukertaa
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `;
 }
@@ -676,50 +730,17 @@ function showMotivationModal() {
   document.getElementById("motivationText").innerHTML = `"${randomQuote}"`;
 }
 
-// ========== AJASTIN & LASKURIT ==========
+// ========== AJASTIN ==========
 function formatTimeLeft(ms) {
   if (ms <= 0) return "⌛ KOE ALKANUT!";
-  const h = Math.floor(ms / 3600000);
-  const m = Math.floor((ms % 3600000) / 60000);
-  const s = Math.floor((ms % 60000) / 1000);
-  return `${h}h ${m}m ${s}s`;
-}
-
-function getTimeProgress(examDate) {
-  const examTime = new Date(examDate).getTime();
-  const now = Date.now();
-  const total = examTime - startDate.getTime();
-  const elapsed = now - startDate.getTime();
-  if (total <= 0) return 100;
-  return Math.min(100, Math.max(0, (elapsed / total) * 100));
-}
-
-function getDailyNeed(exam) {
-  const now = new Date();
-  const examDateTime = new Date(exam.date).getTime();
-  const daysLeft = Math.max(0.1, (examDateTime - now) / (1000 * 3600 * 24));
-  return Math.max(0, exam.targetHours - exam.studied) / daysLeft;
-}
-
-function getGradePrediction(projected, target) {
-  if (projected >= target * 1.1) return { grade: "L / E", emoji: "🏆", color: "#4ade80", msg: "Erinomainen!" };
-  if (projected >= target) return { grade: "E / M", emoji: "💪", color: "#2dd4bf", msg: "Tavoite saavutettavissa" };
-  if (projected >= target * 0.7) return { grade: "C / M", emoji: "⚠️", color: "#facc15", msg: "Kiristä tahtia" };
-  if (projected >= target * 0.4) return { grade: "I / C", emoji: "😰", color: "#fb923c", msg: "Vakava riski" };
-  return { grade: "I (hylätty)", emoji: "💀", color: "#f87171", msg: "Kriittinen vaje" };
-}
-
-function computeProjected(exam) {
-  const now = new Date();
-  const examTime = new Date(exam.date).getTime();
-  const totalPeriod = examTime - startDate.getTime();
-  const elapsed = now - startDate.getTime();
-  const timeProgress = totalPeriod > 0 ? Math.min(1, Math.max(0.01, elapsed / totalPeriod)) : 0.5;
-  const progressRatio = exam.studied / exam.targetHours;
-  let projected = exam.targetHours;
-  if (timeProgress > 0) projected = (progressRatio / timeProgress) * exam.targetHours;
-  if (isNaN(projected) || !isFinite(projected)) projected = exam.studied;
-  return projected;
+  const days = Math.floor(ms / (1000 * 3600 * 24));
+  const hours = Math.floor((ms % (1000 * 3600 * 24)) / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  
+  if (days > 0) {
+    return `${days}pv ${hours}h ${minutes}m`;
+  }
+  return `${hours}h ${minutes}m`;
 }
 
 // ========== RENDERÖINTI ==========
@@ -739,12 +760,27 @@ function renderAllExams() {
   exams.forEach(exam => {
     const examDateObj = new Date(exam.date);
     const timeLeftMs = examDateObj - now;
-    const timePercent = getTimeProgress(exam.date);
-    const studiedPercent = (exam.studied / exam.targetHours) * 100;
+    const studiedPercent = Math.min(100, (exam.studied / exam.targetHours) * 100);
     const daily = getDailyNeed(exam);
     const projected = computeProjected(exam);
     const pred = getGradePrediction(projected, exam.targetHours);
-    const statusText = exam.studied > (timePercent/100 * exam.targetHours) ? "🔥 Edellä" : "⚠️ Jäljessä";
+    
+    // Päättele onko aikataulussa
+    let statusText = "";
+    let statusColor = "";
+    if (exam.studied >= exam.targetHours) {
+      statusText = "✅ VALMIS!";
+      statusColor = "#4ade80";
+    } else if (daily <= 1) {
+      statusText = "👍 Hyvällä mallilla";
+      statusColor = "#2dd4bf";
+    } else if (daily <= 2.5) {
+      statusText = "⚠️ Kohtuullinen tahti";
+      statusColor = "#facc15";
+    } else {
+      statusText = "🔥 Kiirettä pitää!";
+      statusColor = "#f87171";
+    }
     
     let historyHtml = "";
     (exam.history || []).slice(0, 6).forEach(h => {
@@ -762,10 +798,9 @@ function renderAllExams() {
           </div>
         </div>
         <div class="big-timer" id="timer-${exam.id}">${formatTimeLeft(timeLeftMs)}</div>
-        <div class="progress-row"><span>📅 ${examDateObj.toLocaleDateString('fi-FI')} klo ${examDateObj.getHours().toString().padStart(2,'0')}:${examDateObj.getMinutes().toString().padStart(2,'0')}</span><span>${Math.floor(timePercent)}% ajasta</span></div>
-        <div class="progress-bar-bg"><div class="progress-fill" style="width: ${timePercent}%;"></div></div>
-        <div class="progress-row"><span>📖 Tavoite ${exam.targetHours}h</span><span>${exam.studied.toFixed(1)} / ${exam.targetHours} h</span></div>
-        <div class="progress-bar-bg"><div class="progress-fill study-fill" style="width: ${Math.min(100, studiedPercent)}%;"></div></div>
+        <div class="progress-row"><span>📅 ${examDateObj.toLocaleDateString('fi-FI')} klo ${examDateObj.getHours().toString().padStart(2,'0')}:${examDateObj.getMinutes().toString().padStart(2,'0')}</span></div>
+        <div class="progress-row"><span>📖 Opiskeltu: ${exam.studied.toFixed(1)} / ${exam.targetHours} h</span><span style="color: ${statusColor}">${statusText}</span></div>
+        <div class="progress-bar-bg"><div class="progress-fill study-fill" style="width: ${studiedPercent}%;"></div></div>
         <div class="input-group">
           <input type="number" id="hoursInput_${exam.id}" step="0.5" placeholder="tunnit" value="1">
           <button onclick="addStudyToExam(${exam.id}, parseFloat(document.getElementById('hoursInput_${exam.id}').value))">➕ Lisää</button>
@@ -774,15 +809,14 @@ function renderAllExams() {
           <button class="small danger-btn" onclick="resetExam(${exam.id})">Nollaa</button>
         </div>
         <div class="stats-row">
-          <span class="stat-badge">🎯 Päivätahti: ${daily.toFixed(1)} h</span>
+          <span class="stat-badge">🎯 Tarvitaan/pv: ${daily.toFixed(1)} h</span>
           <span class="stat-badge">🔥 Putki: ${exam.streak?.count || 0} pv</span>
-          <span class="stat-badge">${statusText}</span>
+          <span class="stat-badge">📈 Ennuste: ${projected.toFixed(0)} h</span>
         </div>
         <ul class="history-list">${historyHtml}</ul>
         <div class="ai-insight">
           <div style="border-left: 4px solid ${pred.color}; padding-left: 8px;">
-            <strong>${pred.emoji} ${pred.grade}</strong> - ${pred.msg}<br>
-            📈 Ennuste: ${projected.toFixed(1)}h / ${exam.targetHours}h
+            <strong>${pred.emoji} ${pred.grade}-arvio</strong> - ${pred.msg}
           </div>
         </div>
       </div>
