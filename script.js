@@ -1,10 +1,12 @@
 // ========== GLOBAALI DATA ==========
 let exams = [];
 let nextId = 1;
-// Asetetaan startDate kunkin kokeen lisäyshetkeen, ei globaalisti
-// Tämä korjaa ennustelaskennan
 
-// ========== LUKUJÄRJESTYS DATA - LAAJENNETUT KELLONAJAT (8-22) ==========
+// ========== VIIKKOTAVOITE ==========
+let weeklyTarget = 30;
+let weeklyStudyLog = [];
+
+// ========== LUKUJÄRJESTYS DATA ==========
 const HOURS = [
   "8:00–9:00", "9:00–10:00", "10:00–11:00", "11:00–12:00", 
   "12:00–13:00", "13:00–14:00", "14:00–15:00", "15:00–16:00",
@@ -17,7 +19,6 @@ const DAYS = ["Maanantai", "Tiistai", "Keskiviikko", "Torstai", "Perjantai", "La
 // ========== MAALAUSMOODI ==========
 let paintingMode = false;
 let selectedValue = "";
-let currentPaintingColor = "";
 
 // Aktiviteettien värikoodaus
 const activityColors = {
@@ -30,6 +31,7 @@ const activityColors = {
 };
 
 function getActivityColor(text) {
+  if (!text) return "#64748b";
   for (const [key, color] of Object.entries(activityColors)) {
     if (text.includes(key)) return color;
   }
@@ -86,6 +88,177 @@ let defaultSchedule = {
 };
 
 let currentSchedule = {};
+
+// ========== VIIKKOTAVOITE FUNKTIOT ==========
+function loadWeeklyData() {
+  const saved = localStorage.getItem("weekly_target");
+  if (saved) {
+    weeklyTarget = parseInt(saved) || 30;
+  }
+  
+  const savedLog = localStorage.getItem("weekly_study_log");
+  if (savedLog) {
+    weeklyStudyLog = JSON.parse(savedLog);
+  } else {
+    initWeeklyLog();
+  }
+}
+
+function saveWeeklyData() {
+  localStorage.setItem("weekly_target", weeklyTarget);
+  localStorage.setItem("weekly_study_log", JSON.stringify(weeklyStudyLog));
+}
+
+function initWeeklyLog() {
+  const today = new Date();
+  const startOfWeek = getStartOfWeek(today);
+  
+  weeklyStudyLog = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(startOfWeek);
+    date.setDate(startOfWeek.getDate() + i);
+    weeklyStudyLog.push({
+      date: date.toISOString().split('T')[0],
+      day: DAYS[i],
+      hours: 0
+    });
+  }
+  saveWeeklyData();
+}
+
+function getStartOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
+
+function addStudyToWeeklyLog(hours) {
+  const today = new Date().toISOString().split('T')[0];
+  let todayLog = weeklyStudyLog.find(log => log.date === today);
+  
+  const startOfWeek = getStartOfWeek(new Date());
+  const logStartOfWeek = weeklyStudyLog.length > 0 ? new Date(weeklyStudyLog[0].date) : null;
+  
+  if (!logStartOfWeek || startOfWeek.toDateString() !== logStartOfWeek.toDateString()) {
+    initWeeklyLog();
+    todayLog = weeklyStudyLog.find(log => log.date === today);
+    if (todayLog) {
+      todayLog.hours = hours;
+    }
+  } else if (todayLog) {
+    todayLog.hours += hours;
+  } else {
+    weeklyStudyLog.push({
+      date: today,
+      day: DAYS[new Date().getDay() - 1] || "Maanantai",
+      hours: hours
+    });
+  }
+  
+  saveWeeklyData();
+  updateWeeklySummary();
+}
+
+function getWeeklyTotal() {
+  return weeklyStudyLog.reduce((sum, day) => sum + day.hours, 0);
+}
+
+function getWeeklyProgress() {
+  const total = getWeeklyTotal();
+  return Math.min(100, (total / weeklyTarget) * 100);
+}
+
+function getDailyTarget() {
+  return weeklyTarget / 7;
+}
+
+function getDaysLeftInWeek() {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  if (dayOfWeek === 0) return 0;
+  return 7 - dayOfWeek;
+}
+
+function editWeeklyTarget() {
+  const newTarget = prompt("Aseta viikkotavoite (tuntia/viikko):", weeklyTarget);
+  if (newTarget && !isNaN(parseFloat(newTarget)) && parseFloat(newTarget) > 0) {
+    weeklyTarget = parseFloat(newTarget);
+    saveWeeklyData();
+    updateWeeklySummary();
+    showToast(`✅ Viikkotavoite asetettu: ${weeklyTarget}h/viikko (${(weeklyTarget/7).toFixed(1)}h/päivä)`);
+  }
+}
+
+function updateWeeklySummary() {
+  const container = document.getElementById("weeklySummary");
+  if (!container) return;
+  
+  const total = getWeeklyTotal();
+  const progress = getWeeklyProgress();
+  const remaining = Math.max(0, weeklyTarget - total);
+  const daysLeft = getDaysLeftInWeek();
+  const avgNeeded = daysLeft > 0 ? remaining / daysLeft : 0;
+  const dailyTarget = getDailyTarget();
+  
+  let statusColor = "";
+  let statusText = "";
+  if (progress >= 100) {
+    statusColor = "#4ade80";
+    statusText = "🎉 TAVOITE SAATU! Loistavaa!";
+  } else if (progress >= 70) {
+    statusColor = "#2dd4bf";
+    statusText = "💪 Hyvä vauhti! Kohta tavoitteessa!";
+  } else if (progress >= 40) {
+    statusColor = "#facc15";
+    statusText = "⚠️ Puolivälissä, jatka samaan malliin!";
+  } else {
+    statusColor = "#f87171";
+    statusText = "🔥 Hieman jäljessä, naputtele lisää tunteja!";
+  }
+  
+  let daysHtml = "";
+  for (let log of weeklyStudyLog) {
+    const dayProgress = Math.min(100, (log.hours / dailyTarget) * 100);
+    daysHtml += `
+      <div class="weekly-day">
+        <span class="weekly-day-name">${log.day.substring(0, 2)}</span>
+        <div class="weekly-day-bar-bg">
+          <div class="weekly-day-bar" style="width: ${dayProgress}%; background: ${dayProgress >= 100 ? '#4ade80' : '#2dd4bf'}"></div>
+        </div>
+        <span class="weekly-day-hours">${log.hours.toFixed(1)}h</span>
+      </div>
+    `;
+  }
+  
+  container.innerHTML = `
+    <div class="weekly-header">
+      <div class="weekly-title">
+        <span>📅 VIIKKOTAVOITE</span>
+        <span class="weekly-edit" onclick="editWeeklyTarget()">✏️ muokkaa</span>
+      </div>
+      <div class="weekly-stats">
+        <div class="weekly-big-number">${total.toFixed(1)} / ${weeklyTarget} h</div>
+        <div class="weekly-progress-bar">
+          <div class="weekly-progress-fill" style="width: ${progress}%; background: ${statusColor}"></div>
+        </div>
+        <div class="weekly-info">
+          <span>📊 ${progress.toFixed(0)}% viikkotavoitteesta</span>
+          <span>⏰ Jäljellä: ${remaining.toFixed(1)} h</span>
+          <span>⚡ Tarvitaan/pv: ${avgNeeded.toFixed(1)} h</span>
+        </div>
+        <div class="weekly-status" style="color: ${statusColor}">${statusText}</div>
+      </div>
+    </div>
+    <div class="weekly-days">
+      ${daysHtml}
+    </div>
+    <div class="weekly-tip">
+      💡 <strong>${weeklyTarget}h/viikko = ${dailyTarget.toFixed(1)}h/päivä</strong><br>
+      ${remaining <= 0 ? 'Olet jo saavuttanut viikkotavoitteesi! 🎉' : `Tarvitset vielä ${remaining.toFixed(1)} tuntia.`}
+    </div>
+  `;
+}
 
 // ========== LUKUJÄRJESTYKSEN FUNKTIOT ==========
 function loadScheduleFromStorage() {
@@ -418,7 +591,7 @@ const motivationQuotes = [
   "Vaikeimmat hetket erottavat tekijät haaveilijoista. Sinä olet tekijä!"
 ];
 
-// ========== Lataus ja tallennus ==========
+// ========== KOKEIDEN DATA ==========
 function loadData() {
   const saved = localStorage.getItem("custom_exams_data");
   if (saved) {
@@ -462,6 +635,9 @@ function addStudyToExam(examId, hours) {
   if (exam.history.length > 12) exam.history.pop();
   updateStreak(exam, now);
   saveData();
+  
+  addStudyToWeeklyLog(hours);
+  
   renderAllExams();
   updateAISummary();
 }
@@ -511,7 +687,7 @@ function addExamFromSelect() {
     studied: 0,
     history: [],
     streak: { lastDate: null, count: 0 },
-    createdAt: new Date().toISOString() // Tallenna luontiaika
+    createdAt: new Date().toISOString()
   };
   exams.push(newExam);
   saveData();
@@ -554,64 +730,33 @@ function addCustomExam() {
   alert(`✅ "${name}" lisätty!`);
 }
 
-// ========== KORJATUT LASKENTAFUNKTIOT ==========
-
-// Lasketaan päivittäinen tarve (jäljellä olevat tunnit / jäljellä olevat päivät)
+// ========== LASKENTAFUNKTIOT ==========
 function getDailyNeed(exam) {
   const now = new Date();
   const examDate = new Date(exam.date);
-  
-  // Jos koe on jo mennyt
   if (examDate <= now) return 0;
-  
   const daysLeft = Math.max(1, Math.ceil((examDate - now) / (1000 * 3600 * 24)));
   const hoursNeeded = Math.max(0, exam.targetHours - exam.studied);
-  
   return hoursNeeded / daysLeft;
 }
 
-// Lasketaan realistinen ennuste nykyisen opiskelutahdin perusteella
 function computeProjected(exam) {
   const now = new Date();
   const examDate = new Date(exam.date);
-  
-  // Jos koe on mennyt tai ei ole opiskeltu mitään
   if (examDate <= now) return exam.studied;
   if (exam.studied === 0) return 0;
   
   const createdAt = exam.createdAt ? new Date(exam.createdAt) : new Date(exam.date);
   const daysSinceStart = Math.max(1, Math.ceil((now - createdAt) / (1000 * 3600 * 24)));
-  const daysTotal = Math.max(1, Math.ceil((examDate - createdAt) / (1000 * 3600 * 24)));
-  
-  // Opiskelunopeus (tuntia/päivä)
   const studyRate = exam.studied / daysSinceStart;
-  
-  // Ennuste = nykyinen + (jäljellä olevat päivät * opiskelunopeus)
   const daysRemaining = Math.max(0, Math.ceil((examDate - now) / (1000 * 3600 * 24)));
   const projected = exam.studied + (studyRate * daysRemaining);
   
-  // Ennuste ei voi ylittää järjettömiä lukuja (max 2x tavoite)
   return Math.min(projected, exam.targetHours * 2);
 }
 
-// Lasketaan aikaprosentti (kuinka paljon ajasta on kulunut)
-function getTimeProgress(exam) {
-  const now = new Date();
-  const examDate = new Date(exam.date);
-  const createdAt = exam.createdAt ? new Date(exam.createdAt) : new Date(examDate);
-  createdAt.setDate(createdAt.getDate() - 60); // Oletus: 60 päivää ennen koetta
-  
-  const total = examDate - createdAt;
-  const elapsed = now - createdAt;
-  
-  if (total <= 0) return 100;
-  return Math.min(100, Math.max(0, (elapsed / total) * 100));
-}
-
-// Parannettu arvosana-arvio
 function getGradePrediction(projected, target) {
   const ratio = projected / target;
-  
   if (ratio >= 0.95) return { grade: "L / E", emoji: "🏆", color: "#4ade80", msg: "Erinomainen vauhti!" };
   if (ratio >= 0.8) return { grade: "E / M", emoji: "💪", color: "#2dd4bf", msg: "Tavoite saavutettavissa" };
   if (ratio >= 0.6) return { grade: "C / M", emoji: "⚠️", color: "#facc15", msg: "Kiristä tahtia" };
@@ -633,16 +778,15 @@ function updateAISummary() {
   const totalStudied = exams.reduce((sum, e) => sum + e.studied, 0);
   const totalProgress = (totalStudied / totalTarget) * 100;
   const avgStreak = exams.length ? Math.floor(exams.reduce((sum, e) => sum + (e.streak?.count || 0), 0) / exams.length) : 0;
-  
   const finishedExams = exams.filter(e => e.studied >= e.targetHours).length;
   const bestExam = exams.reduce((best, e) => (e.studied / e.targetHours) > (best.studied / best.targetHours) ? e : best, exams[0]);
   const worstExam = exams.reduce((worst, e) => (e.studied / e.targetHours) < (worst.studied / worst.targetHours) ? e : worst, exams[0]);
   
   let motivationMessage = "";
-  if (totalProgress >= 80) motivationMessage = "🎉 Mahtavaa! Olet erinomaisella tiellä kohti kokeita! Jatka samaan malliin!";
-  else if (totalProgress >= 50) motivationMessage = "💪 Hyvä vauhti! Pysy aikataulussa ja kiristä tarvittaessa!";
-  else if (totalProgress >= 25) motivationMessage = "🌱 Hyvä alku! Nyt on aika nostaa panoksia - jokainen tunti on tärkeä!";
-  else motivationMessage = "⚡ Nyt on aika aloittaa tosissaan! Pienikin alku on parempi kuin ei mitään. Sinä pystyt!";
+  if (totalProgress >= 80) motivationMessage = "🎉 Mahtavaa! Olet erinomaisella tiellä kohti kokeita!";
+  else if (totalProgress >= 50) motivationMessage = "💪 Hyvä vauhti! Pysy aikataulussa!";
+  else if (totalProgress >= 25) motivationMessage = "🌱 Hyvä alku! Nyt on aika nostaa panoksia!";
+  else motivationMessage = "⚡ Nyt on aika aloittaa tosissaan! Sinä pystyt!";
   
   const aiSuggestion = getAISuggestion();
   
@@ -650,7 +794,7 @@ function updateAISummary() {
     <div class="ai-stats-grid">
       <div class="ai-stat-card">📊 Yhteensä: ${totalStudied.toFixed(1)} / ${totalTarget} h</div>
       <div class="ai-stat-card">📈 Kokonaisprogressi: ${totalProgress.toFixed(1)}%</div>
-      <div class="ai-stat-card">🔥 Keskimääräinen putki: ${avgStreak} päivää</div>
+      <div class="ai-stat-card">🔥 Keskimääräinen putki: ${avgStreak} pv</div>
       <div class="ai-stat-card">🏆 Valmiit kokeet: ${finishedExams}/${exams.length}</div>
     </div>
     <div class="ai-stat-card" style="margin-top: 10px;">
@@ -676,17 +820,17 @@ function getAISuggestion() {
   const neededDaily = (nextExam.targetHours - nextExam.studied) / daysLeft;
   
   if (neededDaily > 4) {
-    return `⚠️ ${nextExam.name} on ${daysLeft} päivän päästä! Tarvitset ${neededDaily.toFixed(1)}h/päivä. Keskity nyt tähän!`;
+    return `⚠️ ${nextExam.name} on ${daysLeft} päivän päästä! Tarvitset ${neededDaily.toFixed(1)}h/päivä.`;
   } else if (neededDaily > 2) {
-    return `📚 ${nextExam.name} vaatii ${neededDaily.toFixed(1)}h/päivä. Tee päivittäinen rutiini ja pysy aikataulussa.`;
+    return `📚 ${nextExam.name} vaatii ${neededDaily.toFixed(1)}h/päivä. Tee päivittäinen rutiini.`;
   } else if (neededDaily > 0.5) {
-    return `✅ ${nextExam.name} on hyvällä mallilla! Jatka rauhallista kertausta (${neededDaily.toFixed(1)}h/päivä).`;
+    return `✅ ${nextExam.name} on hyvällä mallilla! (${neededDaily.toFixed(1)}h/päivä)`;
   } else {
-    return `🎉 ${nextExam.name} on hyvin hallinnassa! Kertaa kevyesti ja tee vanhoja yo-tehtäviä.`;
+    return `🎉 ${nextExam.name} on hyvin hallinnassa! Kertaa kevyesti.`;
   }
 }
 
-// ========== TILASTOT MODAALIIN ==========
+// ========== TILASTOT ==========
 function showStatsModal() {
   const content = document.getElementById("statsContent");
   if (!content) return;
@@ -695,17 +839,18 @@ function showStatsModal() {
   const totalStudied = exams.reduce((sum, e) => sum + e.studied, 0);
   const avgStreak = exams.length ? Math.floor(exams.reduce((sum, e) => sum + (e.streak?.count || 0), 0) / exams.length) : 0;
   const bestStreak = exams.length ? Math.max(...exams.map(e => e.streak?.count || 0)) : 0;
-  
   const studyDays = [...new Set(exams.flatMap(e => e.history?.map(h => new Date(h.timestamp).toDateString()) || []))].length;
+  const weeklyTotal = getWeeklyTotal();
   
   content.innerHTML = `
     <div class="ai-stats-grid">
-      <div class="ai-stat-card">📚 Opiskeltu yhteensä: ${totalStudied.toFixed(1)} tuntia</div>
-      <div class="ai-stat-card">🎯 Tavoite yhteensä: ${totalTarget} tuntia</div>
+      <div class="ai-stat-card">📚 Opiskeltu yhteensä: ${totalStudied.toFixed(1)} h</div>
+      <div class="ai-stat-card">🎯 Tavoite yhteensä: ${totalTarget} h</div>
       <div class="ai-stat-card">📊 Kokonaisprogressi: ${((totalStudied/totalTarget)*100 || 0).toFixed(1)}%</div>
       <div class="ai-stat-card">📅 Opiskelupäiviä: ${studyDays}</div>
-      <div class="ai-stat-card">🔥 Keskimääräinen putki: ${avgStreak} pv</div>
+      <div class="ai-stat-card">🔥 Keskim. putki: ${avgStreak} pv</div>
       <div class="ai-stat-card">🏆 Paras putki: ${bestStreak} pv</div>
+      <div class="ai-stat-card">📅 Tällä viikolla: ${weeklyTotal.toFixed(1)} / ${weeklyTarget} h</div>
     </div>
     <div style="margin-top: 1rem;">
       <h4>📊 Koekohtaiset tilastot:</h4>
@@ -716,7 +861,7 @@ function showStatsModal() {
         <div style="margin: 8px 0; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 0.8rem;">
           <strong>${escapeHtml(e.name)}</strong><br>
           📖 ${e.studied.toFixed(1)} / ${e.targetHours} h (${((e.studied/e.targetHours)*100).toFixed(1)}%)<br>
-          📈 Ennuste: ${projected.toFixed(1)} h | 🎯 Päivätahti: ${daily.toFixed(1)} h/pv<br>
+          📈 Ennuste: ${projected.toFixed(0)} h | 🎯 Päivätahti: ${daily.toFixed(1)} h/pv<br>
           🔥 Putki: ${e.streak?.count || 0} pv | ✏️ ${e.history?.length || 0} lukukertaa
         </div>
       `}).join('')}
@@ -724,13 +869,11 @@ function showStatsModal() {
   `;
 }
 
-// ========== MOTIVAATIO ==========
 function showMotivationModal() {
   const randomQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
   document.getElementById("motivationText").innerHTML = `"${randomQuote}"`;
 }
 
-// ========== AJASTIN ==========
 function formatTimeLeft(ms) {
   if (ms <= 0) return "⌛ KOE ALKANUT!";
   const days = Math.floor(ms / (1000 * 3600 * 24));
@@ -765,7 +908,6 @@ function renderAllExams() {
     const projected = computeProjected(exam);
     const pred = getGradePrediction(projected, exam.targetHours);
     
-    // Päättele onko aikataulussa
     let statusText = "";
     let statusColor = "";
     if (exam.studied >= exam.targetHours) {
@@ -905,7 +1047,6 @@ function initModals() {
   };
 }
 
-// ========== LUKUJÄRJESTYKSEN NAPPIEN ALUSTUS ==========
 function initTimetableButtons() {
   const loadBtn = document.getElementById("loadAnnaScheduleBtn");
   const clearBtn = document.getElementById("clearScheduleBtn");
@@ -930,7 +1071,6 @@ function initTimetableButtons() {
   initQuickButtons();
 }
 
-// ========== AUTOMAATIO ==========
 let interval;
 function startAutoRefresh() {
   if (interval) clearInterval(interval);
@@ -947,10 +1087,13 @@ window.deleteExam = deleteExam;
 window.editExam = editExam;
 window.openPicker = openPicker;
 window.clearScheduleCell = clearScheduleCell;
+window.editWeeklyTarget = editWeeklyTarget;
 
 // ========== SIVUN LATAUS ==========
 document.addEventListener("DOMContentLoaded", function() {
+  console.log("Sivu ladattu, alustetaan...");
   loadData();
+  loadWeeklyData();
   loadScheduleFromStorage();
   initTheme();
   initModals();
@@ -958,12 +1101,22 @@ document.addEventListener("DOMContentLoaded", function() {
   renderAllExams();
   renderTimetable();
   updateAISummary();
+  updateWeeklySummary();
   startAutoRefresh();
   
-  document.getElementById("addSelectedExamBtn").addEventListener("click", addExamFromSelect);
-  document.getElementById("addCustomExamBtn").addEventListener("click", addCustomExam);
-  document.getElementById("showCustomFormBtn").addEventListener("click", function() {
-    const form = document.getElementById("customExamForm");
-    form.style.display = form.style.display === "none" ? "flex" : "none";
-  });
+  const addBtn = document.getElementById("addSelectedExamBtn");
+  if (addBtn) addBtn.addEventListener("click", addExamFromSelect);
+  
+  const customBtn = document.getElementById("addCustomExamBtn");
+  if (customBtn) customBtn.addEventListener("click", addCustomExam);
+  
+  const showCustomBtn = document.getElementById("showCustomFormBtn");
+  if (showCustomBtn) {
+    showCustomBtn.addEventListener("click", function() {
+      const form = document.getElementById("customExamForm");
+      if (form) form.style.display = form.style.display === "none" ? "flex" : "none";
+    });
+  }
+  
+  console.log("Alustus valmis!");
 });

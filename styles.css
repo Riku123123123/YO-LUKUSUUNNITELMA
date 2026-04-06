@@ -943,6 +943,151 @@ body.light .input-group input {
   transform: translateX(0);
 }
 
+/* ========== VIIKKOTAVOITE ========== */
+.weekly-panel {
+  background: var(--card-dark);
+  backdrop-filter: blur(20px);
+  border-radius: 1.5rem;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 1.5rem;
+  border: var(--glass-border);
+  animation: fadeInUp 0.5s ease-out 0.15s both;
+}
+
+.weekly-header {
+  margin-bottom: 1rem;
+}
+
+.weekly-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.weekly-edit {
+  font-size: 0.7rem;
+  background: rgba(45,212,191,0.2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.weekly-edit:hover {
+  background: var(--accent-cyan);
+  color: #0a0f1c;
+}
+
+.weekly-stats {
+  text-align: center;
+}
+
+.weekly-big-number {
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 0.5rem;
+}
+
+.weekly-progress-bar {
+  background: rgba(255,255,255,0.1);
+  border-radius: 20px;
+  height: 12px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.weekly-progress-fill {
+  height: 100%;
+  border-radius: 20px;
+  transition: width 0.5s ease;
+}
+
+.weekly-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  margin: 10px 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.weekly-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.weekly-days {
+  display: flex;
+  gap: 8px;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.weekly-day {
+  flex: 1;
+  min-width: 50px;
+  text-align: center;
+}
+
+.weekly-day-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.weekly-day-bar-bg {
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  height: 6px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+.weekly-day-bar {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s;
+}
+
+.weekly-day-hours {
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+
+.weekly-tip {
+  margin-top: 0.75rem;
+  padding: 8px;
+  background: rgba(45,212,191,0.1);
+  border-radius: 0.8rem;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .weekly-days {
+    gap: 4px;
+  }
+  .weekly-day {
+    min-width: 35px;
+  }
+  .weekly-day-name {
+    font-size: 0.6rem;
+  }
+  .weekly-day-hours {
+    font-size: 0.55rem;
+  }
+}
+
 /* ========== FOOTER ========== */
 footer {
   text-align: center;
