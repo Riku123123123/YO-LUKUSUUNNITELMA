@@ -1080,7 +1080,7 @@ function startAutoRefresh() {
 }
 
 // ============================================================
-//  CHATBOT - FETCH API -VERSIO (EI TARVITSE SDK:TA)
+//  CHATBOT - FETCH API -VERSIO (TOIMII ILMAN SDK:TA)
 // ============================================================
 
 // 🔐 API-avaimen hallinta
@@ -1113,6 +1113,8 @@ function clearGeminiApiKeyV2() {
 // Keskustelun tila
 let chatHistory = [];
 let isChatLoading = false;
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 3000; // 3 sekuntia
 
 // System prompt
 function getSystemPromptV2() {
@@ -1149,9 +1151,18 @@ function formatBotReplyV2(text) {
   return formatted;
 }
 
-// ⭐ PÄÄFUNKTIO - Lähetä viesti (KÄYTTÄÄ FETCH API:TA)
+// ⭐ PÄÄFUNKTIO - Lähetä viesti
 async function sendChatMessageV2(message) {
   if (!message.trim()) return;
+
+  // ⏱️ Estä liian tiheät pyynnöt (429)
+  const now = Date.now();
+  if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
+    const waitTime = Math.ceil((MIN_REQUEST_INTERVAL - (now - lastRequestTime)) / 1000);
+    showToast(`⏳ Odota ${waitTime}s ennen uutta viestiä`);
+    return;
+  }
+  lastRequestTime = now;
 
   const API_KEY = getGeminiApiKey();
   if (!API_KEY) {
@@ -1311,7 +1322,10 @@ function initChatbotV2() {
   const resetBtn = document.getElementById("resetChatBtn");
   const suggestions = document.querySelectorAll(".chatbot-suggestions button");
 
-  if (!input || !sendBtn) return;
+  if (!input || !sendBtn) {
+    console.warn("Chatbot elementtejä ei löytynyt");
+    return;
+  }
 
   const send = () => sendChatMessageV2(input.value);
 
@@ -1379,12 +1393,12 @@ document.addEventListener("DOMContentLoaded", function() {
   initTheme();
   initModals();
   initTimetableButtons();
+  initChatbotV2();
   renderAllExams();
   renderTimetable();
   updateAISummary();
   updateWeeklySummary();
   startAutoRefresh();
-  initChatbotV2();
   
   const addBtn = document.getElementById("addSelectedExamBtn");
   if (addBtn) addBtn.addEventListener("click", addExamFromSelect);
