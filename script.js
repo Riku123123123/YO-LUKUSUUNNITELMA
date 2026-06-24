@@ -1079,10 +1079,11 @@ function startAutoRefresh() {
   }, 1000);
 }
 
-// ========== CHATBOT UUDEMMALLA GEMINI API:LLA ==========
-// Käyttää Google GenAI SDK:ta ja Interactions API:ta
+// ============================================================
+//  CHATBOT - FETCH API -VERSIO (EI TARVITSE SDK:TA)
+// ============================================================
 
-// Tämä on turvallinen tapa hallita API-avainta
+// 🔐 API-avaimen hallinta
 function getGeminiApiKey() {
   let key = localStorage.getItem("gemini_api_key_v2");
   if (!key) {
@@ -1100,39 +1101,20 @@ function getGeminiApiKey() {
   return key;
 }
 
-// Poista API-avain (jos käyttäjä haluaa vaihtaa)
 function clearGeminiApiKeyV2() {
   localStorage.removeItem("gemini_api_key_v2");
-  localStorage.removeItem("chat_interaction_id");
-  document.getElementById("chatbotStatus").textContent = "⚠️ API-avain puuttuu";
-  document.getElementById("chatbotStatus").className = "chatbot-status offline";
-}
-
-// Lataa SDK dynaamisesti (vain kerran)
-let geminiSDKLoaded = false;
-let GoogleGenAI = null;
-
-async function loadGeminiSDK() {
-  if (geminiSDKLoaded && GoogleGenAI) return GoogleGenAI;
-  
-  try {
-    // Ladataan SDK CDN:stä
-    const module = await import(
-      "https://cdn.jsdelivr.net/npm/@google/genai@0.7.0/+esm"
-    );
-    GoogleGenAI = module.GoogleGenAI;
-    geminiSDKLoaded = true;
-    return GoogleGenAI;
-  } catch (error) {
-    console.error("SDK lataus epäonnistui:", error);
-    throw new Error("Gemini SDK:n lataus epäonnistui. Tarkista internetyhteys.");
+  const statusEl = document.getElementById("chatbotStatus");
+  if (statusEl) {
+    statusEl.textContent = "⚠️ API-avain puuttuu";
+    statusEl.className = "chatbot-status offline";
   }
 }
 
 // Keskustelun tila
-let chatInteractionId = null; // Tallennetaan palvelimelle
+let chatHistory = [];
 let isChatLoading = false;
 
+// System prompt
 function getSystemPromptV2() {
   const examsInfo = exams.map(e => {
     const studied = e.studied || 0;
@@ -1155,21 +1137,30 @@ Ohjeet:
 - Suosittele päivätavoitteita (esim. 2-4h/päivä)
 - Anna konkreettisia vinkkejä eri aineisiin
 - Muistuta levosta ja tauoista
-- Tsemppaa ja kannusta
-
-Olet asiantuntija, joka auttaa opiskelijaa menestymään yo-kirjoituksissa.`;
+- Tsemppaa ja kannusta`;
 }
 
+function formatBotReplyV2(text) {
+  let formatted = text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "• $1")
+    .replace(/\n/g, "<br>");
+  formatted = formatted.replace(/(\d+)\./g, "<br>$1.");
+  return formatted;
+}
+
+// ⭐ PÄÄFUNKTIO - Lähetä viesti (KÄYTTÄÄ FETCH API:TA)
 async function sendChatMessageV2(message) {
   if (!message.trim()) return;
 
-  // Tarkista API-avain
   const API_KEY = getGeminiApiKey();
   if (!API_KEY) {
     alert("⚠️ API-avain puuttuu! Hanki se Google AI Studiosta.");
     const statusEl = document.getElementById("chatbotStatus");
-    statusEl.textContent = "⚠️ API-avain puuttuu";
-    statusEl.className = "chatbot-status offline";
+    if (statusEl) {
+      statusEl.textContent = "⚠️ API-avain puuttuu";
+      statusEl.className = "chatbot-status offline";
+    }
     return;
   }
 
@@ -1179,16 +1170,16 @@ async function sendChatMessageV2(message) {
 
   if (isChatLoading) return;
   isChatLoading = true;
-  sendBtn.disabled = true;
+  if (sendBtn) sendBtn.disabled = true;
 
   // Näytä käyttäjän viesti
   const userMsgDiv = document.createElement("div");
   userMsgDiv.className = "chatbot-message user";
   userMsgDiv.innerHTML = `<div class="bubble">${escapeHtml(message)}</div>`;
   messagesDiv.appendChild(userMsgDiv);
-  input.value = "";
+  if (input) input.value = "";
 
-  // Näytä latausindikaattori
+  // Latausindikaattori
   const botMsgDiv = document.createElement("div");
   botMsgDiv.className = "chatbot-message bot";
   botMsgDiv.innerHTML = `
@@ -1202,100 +1193,118 @@ async function sendChatMessageV2(message) {
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
   const statusEl = document.getElementById("chatbotStatus");
-  statusEl.textContent = "⏳ Kirjoittaa...";
-  statusEl.className = "chatbot-status";
+  if (statusEl) {
+    statusEl.textContent = "⏳ Kirjoittaa...";
+    statusEl.className = "chatbot-status loading";
+  }
 
   try {
-    // Lataa SDK
-    const GenAI = await loadGeminiSDK();
-    const ai = new GenAI({ apiKey: API_KEY });
-
     const systemPrompt = getSystemPromptV2();
+    const conversationHistory = chatHistory.slice(-10).map(c => ({
+      role: c.role === "user" ? "user" : "model",
+      parts: c.parts
+    }));
 
-    // Käytä Interactions API:ta
-    let interactionData = {
-      model: "gemini-2.5-flash", // Uusin malli
-      input: message,
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0.7,
-        maxOutputTokens: 800,
+    // 🔥 SUORA FETCH-KUTSU (EI SDK:TA)
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: systemPrompt }]
+          },
+          contents: [
+            ...conversationHistory,
+            { role: "user", parts: [{ text: message }] }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 800,
+            topP: 0.9
+          }
+        })
       }
-    };
+    );
 
-    // Jos meillä on edellinen interaktio, jatka sitä
-    if (chatInteractionId) {
-      interactionData.previousInteractionId = chatInteractionId;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMsg = errorData.error?.message || `Virhe: ${response.status}`;
+      
+      if (response.status === 429) {
+        throw new Error("⏳ Liian monta pyyntöä! Odota 1-2 minuuttia.");
+      }
+      if (response.status === 403 || response.status === 401) {
+        clearGeminiApiKeyV2();
+        throw new Error("🔑 API-avain on virheellinen. Anna uusi avain.");
+      }
+      throw new Error(errorMsg);
     }
 
-    const interaction = await ai.interactions.create(interactionData);
+    const data = await response.json();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Vastaus jäi saamatta.";
 
-    // Tallenna interaktion ID seuraavaa viestiä varten
-    chatInteractionId = interaction.id;
-    localStorage.setItem("chat_interaction_id", chatInteractionId);
+    chatHistory.push(
+      { role: "user", parts: [{ text: message }] },
+      { role: "model", parts: [{ text: reply }] }
+    );
 
-    // Hae vastaus
-    const reply = interaction.output_text || "Vastaus jäi saamatta.";
-
-    // Päivitä bottiviesti
     botMsgDiv.innerHTML = `<div class="bubble">${formatBotReplyV2(reply)}</div>`;
 
-    statusEl.textContent = "● Yhdistetty";
-    statusEl.className = "chatbot-status";
+    if (statusEl) {
+      statusEl.textContent = "● Yhdistetty";
+      statusEl.className = "chatbot-status";
+    }
 
   } catch (error) {
     console.error("Chatbot virhe:", error);
     
-    let errorMsg = error.message;
-    if (errorMsg.includes("API key")) {
-      clearGeminiApiKeyV2();
-      errorMsg = "API-avain on virheellinen. Anna uusi avain.";
+    let userMsg = error.message;
+    if (userMsg.includes("429")) {
+      userMsg = "⏳ Liian monta pyyntöä! Odota 1-2 minuuttia.";
+    } else if (userMsg.includes("API-avain")) {
+      userMsg = "🔑 API-avain on virheellinen. Anna uusi avain.";
+    } else if (userMsg.includes("network") || userMsg.includes("fetch")) {
+      userMsg = "📡 Verkkoyhteysongelma. Tarkista internetyhteys.";
     }
     
     botMsgDiv.innerHTML = `
-      <div class="bubble" style="color: #f87171;">
-        ⚠️ Virhe: ${errorMsg}
+      <div class="bubble" style="color: #f87171; border-color: #f87171;">
+        ⚠️ ${userMsg}
       </div>
     `;
-    statusEl.textContent = "⚠️ Virhe";
-    statusEl.className = "chatbot-status offline";
+    
+    if (statusEl) {
+      statusEl.textContent = "⚠️ Virhe";
+      statusEl.className = "chatbot-status offline";
+    }
   }
 
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
   isChatLoading = false;
-  sendBtn.disabled = false;
+  if (sendBtn) sendBtn.disabled = false;
 }
 
-function formatBotReplyV2(text) {
-  let formatted = text
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.*?)\*/g, "• $1")
-    .replace(/\n/g, "<br>");
-  
-  // Lisää rivinvaihdot numeroitujen listojen eteen
-  formatted = formatted.replace(/(\d+)\./g, "<br>$1.");
-  return formatted;
-}
-
+// Nollaa keskustelu
 function resetChatV2() {
   if (confirm("Aloitetaanko uusi keskustelu?")) {
-    chatInteractionId = null;
-    localStorage.removeItem("chat_interaction_id");
-    
+    chatHistory = [];
     const messagesDiv = document.getElementById("chatbotMessages");
-    messagesDiv.innerHTML = `
-      <div class="chatbot-message bot">
-        <div class="bubble">
-          🔄 Keskustelu aloitettu alusta!<br>
-          Kysy mitä tahansa yo-kokeisiin liittyen.
+    if (messagesDiv) {
+      messagesDiv.innerHTML = `
+        <div class="chatbot-message bot">
+          <div class="bubble">🔄 Keskustelu aloitettu alusta!</div>
         </div>
-      </div>
-    `;
+      `;
+    }
     showToast("🔄 Keskustelu nollattu");
   }
 }
 
-// ========== ALUSTA CHATBOT ==========
+// ⭐ ALUSTA CHATBOT
 function initChatbotV2() {
   const input = document.getElementById("chatbotInput");
   const sendBtn = document.getElementById("chatbotSendBtn");
@@ -1323,33 +1332,32 @@ function initChatbotV2() {
     });
   });
 
-  // Palauta edellinen interaktio jos sellainen on
-  const savedInteractionId = localStorage.getItem("chat_interaction_id");
-  if (savedInteractionId) {
-    chatInteractionId = savedInteractionId;
-  }
-
-  // Tarkista API-avain
-  const API_KEY = getGeminiApiKey();
   const statusEl = document.getElementById("chatbotStatus");
+  const API_KEY = getGeminiApiKey();
   if (!API_KEY) {
-    statusEl.textContent = "⚠️ API-avain puuttuu";
-    statusEl.className = "chatbot-status offline";
+    if (statusEl) {
+      statusEl.textContent = "⚠️ API-avain puuttuu";
+      statusEl.className = "chatbot-status offline";
+    }
   } else {
-    statusEl.textContent = "● Yhdistetty";
-    statusEl.className = "chatbot-status";
+    if (statusEl) {
+      statusEl.textContent = "● Yhdistetty";
+      statusEl.className = "chatbot-status";
+    }
   }
 
-  // Kaksoisklikkaus statukseen vaihtaa avainta
-  statusEl.addEventListener("dblclick", () => {
-    if (confirm("Vaihdetaanko API-avain?")) {
-      clearGeminiApiKeyV2();
-      alert("API-avain tyhjennetty. Päivitä sivu ja anna uusi avain.");
-      location.reload();
-    }
-  });
+  // Kaksoisklikkaus vaihtaa avaimen
+  if (statusEl) {
+    statusEl.addEventListener("dblclick", () => {
+      if (confirm("Vaihdetaanko API-avain?")) {
+        clearGeminiApiKeyV2();
+        alert("API-avain tyhjennetty. Päivitä sivu ja anna uusi avain.");
+        location.reload();
+      }
+    });
+  }
 
-  console.log("🤖 Chatbot V2 alustettu (Interactions API)");
+  console.log("🤗 Chatbot V2 alustettu (Fetch API)");
 }
 
 // ========== GLOBAALIT FUNKTIOT ==========
