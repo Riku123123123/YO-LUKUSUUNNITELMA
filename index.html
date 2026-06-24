@@ -98,10 +98,44 @@
   </div>
 
   <div class="weekly-panel glass-card" id="weeklyPanel">
-  <div id="weeklySummary"></div>
-</div>
+    <div id="weeklySummary"></div>
+  </div>
 
-  <!-- LUKUJÄRJESTYS - PARANNELTU VERSIO -->
+  <!-- ⭐ CHATBOT - TÄMÄ ON UUSI -->
+  <div class="chatbot-panel glass-card">
+    <div class="chatbot-header">
+      <h3>🤖 YO-AI CHAT</h3>
+      <div class="header-actions">
+        <span class="chatbot-status" id="chatbotStatus">● Yhdistetty</span>
+        <button id="resetChatBtn" class="small-btn">🔄 Uusi</button>
+      </div>
+    </div>
+    
+    <div class="chatbot-messages" id="chatbotMessages">
+      <div class="chatbot-message bot">
+        <div class="bubble">
+          👋 Hei! Olen YO-lukuapuri. Kysy minulta vaikka:<br>
+          • "Kuinka paljon kannattaa lukea päivässä?"<br>
+          • "Miten valmistaudun matematiikan YO-kokeeseen?"<br>
+          • "Anna minulle viikkosuunnitelma"
+        </div>
+      </div>
+    </div>
+    
+    <div class="chatbot-input-row">
+      <input type="text" id="chatbotInput" placeholder="Kysy jotain yo-kokeista..." />
+      <button id="chatbotSendBtn">📤 Lähetä</button>
+    </div>
+    
+    <div class="chatbot-suggestions">
+      <button data-question="Kuinka paljon kannattaa lukea päivässä?">📊 Päivätahti</button>
+      <button data-question="Miten valmistaudun matematiikan YO-kokeeseen?">📐 Matematiikka</button>
+      <button data-question="Miten valmistaudun äidinkielen YO-kokeeseen?">📖 Äidinkieli</button>
+      <button data-question="Anna minulle viikkosuunnitelma">📅 Viikkosuunnitelma</button>
+    </div>
+  </div>
+
+  <!-- LUKUJÄRJESTYS -->
   <div class="timetable-panel glass-card">
     <div class="timetable-header">
       <h3>📅 VIIKKOLUKUJÄRJESTYS</h3>
@@ -159,44 +193,6 @@
       <p>✨ Noudattamalla suunnitelmaa opiskelu tuntuu selkeämmältä! Iltapäivän vapaa-aika rentouttaa niin hyvin, että aamuisin on helpompi tarttua tehtäviin.</p>
     </div>
   </div>
-
-<!-- CHATBOT - uudempi versio -->
-<div class="chatbot-panel glass-card">
-  <div class="chatbot-header">
-    <h3>🤖 YO-AI CHAT (Gemini 3.5)</h3>
-    <div>
-      <span class="chatbot-status" id="chatbotStatus">● Yhdistetty</span>
-      <button id="resetChatBtn" class="small-btn" style="margin-left: 8px;">🔄 Uusi keskustelu</button>
-    </div>
-  </div>
-  
-  <!-- Keskustelualue -->
-  <div class="chatbot-messages" id="chatbotMessages">
-    <div class="chatbot-message bot">
-      <div class="bubble">
-        👋 Hei! Olen YO-lukuapuri (Gemini 3.5).<br>
-        Kysy minulta vaikka:<br>
-        • "Kuinka paljon kannattaa lukea päivässä?"<br>
-        • "Miten valmistaudun matematiikan YO-kokeeseen?"<br>
-        • "Anna minulle viikkosuunnitelma"
-      </div>
-    </div>
-  </div>
-  
-  <!-- Syöttörivi -->
-  <div class="chatbot-input-row">
-    <input type="text" id="chatbotInput" placeholder="Kysy jotain yo-kokeista..." />
-    <button id="chatbotSendBtn">📤 Lähetä</button>
-  </div>
-  
-  <!-- Ehdotukset -->
-  <div class="chatbot-suggestions">
-    <button data-question="Kuinka paljon kannattaa lukea päivässä?">📊 Päivätahti</button>
-    <button data-question="Miten valmistaudun matematiikan YO-kokeeseen?">📐 Matematiikka</button>
-    <button data-question="Miten valmistaudun äidinkielen YO-kokeeseen?">📖 Äidinkieli</button>
-    <button data-question="Anna minulle viikkosuunnitelma">📅 Viikkosuunnitelma</button>
-  </div>
-</div>
 
   <!-- Kokeet -->
   <div id="examsContainer" class="exams-grid"></div>
