@@ -1230,7 +1230,10 @@ async function sendChatMessageV2(message) {
           },
           contents: [
             ...conversationHistory,
-            { role: "user", parts: [{ text: message }] }
+            { 
+              role: "user", 
+              parts: [{ text: message }] 
+            }
           ],
           generationConfig: {
             temperature: 0.7,
