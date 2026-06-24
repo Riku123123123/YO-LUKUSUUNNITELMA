@@ -160,33 +160,43 @@
     </div>
   </div>
 
-    <!-- CHATBOT -->
-  <div class="chatbot-panel glass-card">
-    <div class="chatbot-header">
-      <h3>🤖 YO-AI CHAT</h3>
+<!-- CHATBOT - uudempi versio -->
+<div class="chatbot-panel glass-card">
+  <div class="chatbot-header">
+    <h3>🤖 YO-AI CHAT (Gemini 3.5)</h3>
+    <div>
       <span class="chatbot-status" id="chatbotStatus">● Yhdistetty</span>
-    </div>
-    <div class="chatbot-messages" id="chatbotMessages">
-      <div class="chatbot-message bot">
-        <div class="bubble">
-          👋 Hei! Olen YO-lukuapuri. Kysy minulta vaikka:<br>
-          • "Kuinka paljon kannattaa lukea päivässä?"<br>
-          • "Miten valmistaudun matematiikan YO-kokeeseen?"<br>
-          • "Anna minulle viikkosuunnitelma"
-        </div>
-      </div>
-    </div>
-    <div class="chatbot-input-row">
-      <input type="text" id="chatbotInput" placeholder="Kysy jotain yo-kokeista..." />
-      <button id="chatbotSendBtn">📤 Lähetä</button>
-    </div>
-    <div class="chatbot-suggestions">
-      <button data-question="Kuinka paljon kannattaa lukea päivässä?">📊 Päivätahti</button>
-      <button data-question="Miten valmistaudun matematiikan YO-kokeeseen?">📐 Matematiikka</button>
-      <button data-question="Miten valmistaudun äidinkielen YO-kokeeseen?">📖 Äidinkieli</button>
-      <button data-question="Anna minulle viikkosuunnitelma">📅 Viikkosuunnitelma</button>
+      <button id="resetChatBtn" class="small-btn" style="margin-left: 8px;">🔄 Uusi keskustelu</button>
     </div>
   </div>
+  
+  <!-- Keskustelualue -->
+  <div class="chatbot-messages" id="chatbotMessages">
+    <div class="chatbot-message bot">
+      <div class="bubble">
+        👋 Hei! Olen YO-lukuapuri (Gemini 3.5).<br>
+        Kysy minulta vaikka:<br>
+        • "Kuinka paljon kannattaa lukea päivässä?"<br>
+        • "Miten valmistaudun matematiikan YO-kokeeseen?"<br>
+        • "Anna minulle viikkosuunnitelma"
+      </div>
+    </div>
+  </div>
+  
+  <!-- Syöttörivi -->
+  <div class="chatbot-input-row">
+    <input type="text" id="chatbotInput" placeholder="Kysy jotain yo-kokeista..." />
+    <button id="chatbotSendBtn">📤 Lähetä</button>
+  </div>
+  
+  <!-- Ehdotukset -->
+  <div class="chatbot-suggestions">
+    <button data-question="Kuinka paljon kannattaa lukea päivässä?">📊 Päivätahti</button>
+    <button data-question="Miten valmistaudun matematiikan YO-kokeeseen?">📐 Matematiikka</button>
+    <button data-question="Miten valmistaudun äidinkielen YO-kokeeseen?">📖 Äidinkieli</button>
+    <button data-question="Anna minulle viikkosuunnitelma">📅 Viikkosuunnitelma</button>
+  </div>
+</div>
 
   <!-- Kokeet -->
   <div id="examsContainer" class="exams-grid"></div>
