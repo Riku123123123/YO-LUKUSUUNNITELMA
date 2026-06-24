@@ -1079,6 +1079,213 @@ function startAutoRefresh() {
   }, 1000);
 }
 
+// ========== CHATBOT (GEMINI API) ==========
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
+let chatHistory = [];
+let isChatLoading = false;
+
+// 🔐 TURVALLINEN TAPA HALLITA API-AVAINTA
+function getGeminiApiKey() {
+  let key = localStorage.getItem("gemini_api_key");
+  if (!key) {
+    key = prompt("🔑 Anna Gemini API-avain:\n\n1. Mene: https://aistudio.google.com/apikey\n2. Luo uusi avain\n3. Kopioi ja liitä se tähän");
+    if (key) {
+      localStorage.setItem("gemini_api_key", key);
+    }
+  }
+  return key;
+}
+
+function clearGeminiApiKey() {
+  localStorage.removeItem("gemini_api_key");
+  // Päivitä status
+  const statusEl = document.getElementById("chatbotStatus");
+  statusEl.textContent = "⚠️ API-avain puuttuu";
+  statusEl.className = "chatbot-status offline";
+}
+
+function getSystemPrompt() {
+  const examsInfo = exams.map(e => {
+    const studied = e.studied || 0;
+    const target = e.targetHours || 0;
+    const pct = target > 0 ? ((studied / target) * 100).toFixed(0) : 0;
+    return `- ${e.name}: ${studied.toFixed(1)}/${target}h (${pct}%)`;
+  }).join("\n");
+
+  const weeklyTotal = getWeeklyTotal?.() || 0;
+  const weeklyTarget = window.weeklyTarget || 30;
+
+  return `Olet YO-lukuapuri, joka auttaa ylioppilaskirjoituksiin valmistautuvia opiskelijoita.
+Vastaa suomeksi, ystävällisesti ja kannustavasti. Anna konkreettisia neuvoja.
+
+Käyttäjän nykytilanne:
+- Kokeet ja edistyminen:
+${examsInfo || "Ei vielä kokeita lisättynä."}
+- Viikkotavoite: ${weeklyTotal}/${weeklyTarget}h
+- Tämän viikon opiskelu: ${weeklyTotal.toFixed(1)}h
+
+Tärkeää: 
+- Suosittele päivätavoitteita (esim. 2-4h/päivä riippuen ajasta)
+- Muistuta levosta ja tauoista
+- Anna käytännön vinkkejä eri aineisiin
+- Tsemppaa ja kannusta
+
+Vastaa aina hyödyllisesti ja motivoivasti!`;
+}
+
+async function sendChatMessage(message) {
+  if (!message.trim()) return;
+
+  // Tarkista API-avain
+  const API_KEY = getGeminiApiKey();
+  if (!API_KEY) {
+    alert("⚠️ API-avain puuttuu!\n\nHanki se Google AI Studiosta:\nhttps://aistudio.google.com/apikey");
+    const statusEl = document.getElementById("chatbotStatus");
+    statusEl.textContent = "⚠️ API-avain puuttuu";
+    statusEl.className = "chatbot-status offline";
+    return;
+  }
+
+  const messagesDiv = document.getElementById("chatbotMessages");
+  const input = document.getElementById("chatbotInput");
+  const sendBtn = document.getElementById("chatbotSendBtn");
+
+  if (isChatLoading) return;
+  isChatLoading = true;
+  sendBtn.disabled = true;
+
+  // Näytä käyttäjän viesti
+  const userMsgDiv = document.createElement("div");
+  userMsgDiv.className = "chatbot-message user";
+  userMsgDiv.innerHTML = `<div class="bubble">${escapeHtml(message)}</div>`;
+  messagesDiv.appendChild(userMsgDiv);
+
+  input.value = "";
+
+  // Näytä ajatuspallot
+  const botMsgDiv = document.createElement("div");
+  botMsgDiv.className = "chatbot-message bot";
+  botMsgDiv.innerHTML = `
+    <div class="bubble">
+      <div class="thinking-dots">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  `;
+  messagesDiv.appendChild(botMsgDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  const statusEl = document.getElementById("chatbotStatus");
+  statusEl.textContent = "⏳ Kirjoittaa...";
+  statusEl.className = "chatbot-status";
+
+  try {
+    const systemPrompt = getSystemPrompt();
+    chatHistory.push({ role: "user", parts: [{ text: message }] });
+
+    const requestBody = {
+      system_instruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      contents: chatHistory.slice(-20),
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 800,
+        topP: 0.9
+      }
+    };
+
+    const response = await fetch(`${GEMINI_URL}?key=${API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      // Jos API-avain on virheellinen, tyhjennä se
+      if (response.status === 403 || response.status === 401) {
+        clearGeminiApiKey();
+        throw new Error("API-avain on virheellinen tai vanhentunut. Anna uusi avain.");
+      }
+      throw new Error(`API-virhe: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Vastaus jäi saamatta. Yritä uudelleen.";
+
+    chatHistory.push({ role: "model", parts: [{ text: reply }] });
+
+    botMsgDiv.innerHTML = `<div class="bubble">${formatBotReply(reply)}</div>`;
+
+    statusEl.textContent = "● Yhdistetty";
+    statusEl.className = "chatbot-status";
+
+  } catch (error) {
+    console.error("Chatbot virhe:", error);
+    botMsgDiv.innerHTML = `
+      <div class="bubble" style="color: #f87171;">
+        ⚠️ Virhe: ${error.message}<br>
+        ${error.message.includes("API-avain") ? "Anna uusi avain alla olevasta napista." : "Tarkista internetyhteys."}
+      </div>
+    `;
+    statusEl.textContent = "⚠️ Virhe";
+    statusEl.className = "chatbot-status offline";
+  }
+
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  isChatLoading = false;
+  sendBtn.disabled = false;
+}
+
+function formatBotReply(text) {
+  let formatted = text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "• $1")
+    .replace(/\n/g, "<br>");
+  return formatted;
+}
+
+function initChatbot() {
+  const input = document.getElementById("chatbotInput");
+  const sendBtn = document.getElementById("chatbotSendBtn");
+  const suggestions = document.querySelectorAll(".chatbot-suggestions button");
+
+  if (!input || !sendBtn) return;
+
+  const send = () => sendChatMessage(input.value);
+
+  sendBtn.addEventListener("click", send);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") send();
+  });
+
+  suggestions.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const question = btn.getAttribute("data-question");
+      input.value = question;
+      sendChatMessage(question);
+    });
+  });
+
+  // Lisää nappi avaimen vaihtamiseen (lisää HTML:ään tarvittaessa)
+  const statusEl = document.getElementById("chatbotStatus");
+  statusEl.addEventListener("dblclick", () => {
+    if (confirm("Vaihdetaanko API-avain?")) {
+      clearGeminiApiKey();
+      alert("API-avain tyhjennetty. Lataa sivu uudelleen ja anna uusi avain.");
+    }
+  });
+
+  // Tarkista onko avain olemassa
+  const API_KEY = getGeminiApiKey();
+  if (!API_KEY) {
+    statusEl.textContent = "⚠️ API-avain puuttuu";
+    statusEl.className = "chatbot-status offline";
+  }
+}
+
 // ========== GLOBAALIT FUNKTIOT ==========
 window.addStudyToExam = addStudyToExam;
 window.quickAdd = quickAdd;
@@ -1103,6 +1310,7 @@ document.addEventListener("DOMContentLoaded", function() {
   updateAISummary();
   updateWeeklySummary();
   startAutoRefresh();
+  initChatbot()
   
   const addBtn = document.getElementById("addSelectedExamBtn");
   if (addBtn) addBtn.addEventListener("click", addExamFromSelect);
