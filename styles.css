@@ -1223,8 +1223,7 @@ footer {
   animation: spin 1s linear infinite;
 }
 
-/* ========== CHATBOT - UUDEMMAT TYYLIT ========== */
-
+/* ========== CHATBOT ========== */
 .chatbot-panel {
   background: var(--card-dark);
   backdrop-filter: blur(20px);
@@ -1271,10 +1270,6 @@ footer {
   user-select: none;
 }
 
-.chatbot-status:hover {
-  opacity: 0.8;
-}
-
 .chatbot-status.offline {
   background: #ef4444;
   color: white;
@@ -1286,7 +1281,6 @@ footer {
   animation: pulse 1s infinite;
 }
 
-/* Keskustelualue */
 .chatbot-messages {
   background: rgba(0, 0, 0, 0.25);
   border-radius: 1rem;
@@ -1298,7 +1292,6 @@ footer {
   scroll-behavior: smooth;
 }
 
-/* Viestit */
 .chatbot-message {
   display: flex;
   margin-bottom: 12px;
@@ -1347,7 +1340,6 @@ body.light .chatbot-message.user .bubble {
   color: white;
 }
 
-/* Ajatuspallot (loading) */
 .chatbot-message .bubble .thinking-dots {
   display: flex;
   gap: 4px;
@@ -1373,17 +1365,10 @@ body.light .chatbot-message.user .bubble {
 }
 
 @keyframes dotBounce {
-  0%, 80%, 100% {
-    transform: scale(0);
-    opacity: 0.3;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
 }
 
-/* Syöttörivi */
 .chatbot-input-row {
   display: flex;
   gap: 10px;
@@ -1447,7 +1432,6 @@ body.light .chatbot-input-row input::placeholder {
   transform: none;
 }
 
-/* Ehdotukset */
 .chatbot-suggestions {
   display: flex;
   flex-wrap: wrap;
@@ -1485,27 +1469,6 @@ body.light .chatbot-suggestions button:hover {
   color: #0a0f1c;
 }
 
-/* Pieni nappi (reset jne) */
-.small-btn {
-  background: rgba(45, 212, 191, 0.15);
-  border: 1px solid var(--accent-cyan);
-  color: var(--text-light);
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
-  font-weight: 500;
-}
-
-.small-btn:hover {
-  background: var(--accent-cyan);
-  color: #0a0f1c;
-  transform: translateY(-1px);
-}
-
-/* Responsiivisuus */
 @media (max-width: 600px) {
   .chatbot-panel {
     padding: 1rem;
@@ -1539,10 +1502,6 @@ body.light .chatbot-suggestions button:hover {
     gap: 8px;
   }
   
-  .chatbot-header .header-actions {
-    justify-content: space-between;
-  }
-  
   .chatbot-suggestions {
     gap: 4px;
   }
@@ -1553,14 +1512,4 @@ body.light .chatbot-suggestions button:hover {
   }
 }
 
-@media (max-width: 400px) {
-  .chatbot-message .bubble {
-    font-size: 0.75rem;
-    padding: 6px 10px;
-  }
-  
-  .chatbot-input-row input {
-    font-size: 0.8rem;
-    padding: 10px 14px;
-  }
-}
+
