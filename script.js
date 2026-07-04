@@ -579,16 +579,16 @@ function importSchedule(file) {
 
 // Motivaatiolauseet
 const motivationQuotes = [
-  "Menestys ei ole sattumaa. Se on kovaa työtä, sinnikkyyttä ja oppimista.",
-  "Jokainen tunti on askel lähempänä tavoitetta. Pysy vahvana! 💪",
-  "Yo-koetta ei pelätä, sitä harjoitellaan. Sinä pystyt tähän!",
-  "Pienikin askel eteenpäin on voitto. Jatka samaan malliin!",
-  "Tämäkin päivä on mahdollisuus tulla paremmaksi kuin eilen.",
-  "Kun tahtoo tarpeeksi, keinoja löytyy. Usko itseesi!",
-  "Jokainen opiskeltu asia on siemen tulevaisuuden menestykselle.",
-  "Tee tänään jotain, mistä huominen sinut kiittää.",
-  "Et voi voittaa, jos et aloita. Olet jo aloittanut - hienoa!",
-  "Vaikeimmat hetket erottavat tekijät haaveilijoista. Sinä olet tekijä!"
+  "Tänään voit tehdä sen, mitä huomenna olisi vaikeampi aloittaa.",
+  "Yksi hyvin tehty tunti voi muuttaa koko viikon.",
+  "Et tarvitse täydellistä päivää. Tarvitset vain yhden hyvän alun.",
+  "Sinä et ole jäljessä — sinulla on vain yksi seuraava askel edessä.",
+  "Pieni ponnistus nyt säästää sinua suurelta paineelta myöhemmin.",
+  "Aivot eivät kasva lepäten — ne kehittyvät, kun annat niille tehtävän.",
+  "Jokainen toisto tekee sinusta vahvemman.",
+  "Vauhti tulee siitä, kun et luovuta jo kolmannen tunnin jälkeen.",
+  "Sinulla on enemmän kykyä kuin luulet — vain tarpeeksi vähän kärsivällisyyttä.",
+  "Kokeeseen ei valmistuta yhdellä päivällä, mutta yksi hyvä päivä voi alkaa nyt."
 ];
 
 // ========== KOKEIDEN DATA ==========
