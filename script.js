@@ -1083,6 +1083,7 @@ function startAutoRefresh() {
 let chatHistory = [];
 let isChatLoading = false;
 let lastRequestTime = 0;
+let lastBotJSON = null;
 const MIN_REQUEST_INTERVAL = 3000;
 
 function getGeminiApiKey() {
@@ -1119,15 +1120,43 @@ Käyttäjän tilanne:
 ${examsInfo || "Ei vielä kokeita."}
 Viikkotavoite: ${weeklyTotal}/${weeklyTarget}h
 
-Ohjeet:
-- Vastaa suomeksi, ystävällisesti ja kannustavasti
+VASTAUSTYYLI - ERITTÄIN TÄRKEÄ:
+⚠️ VASTAA TIIVIŠTI, MUTTA RIITTÄVÄN SELKEÄSTI:
+- Älä vastaa liian lyhyesti, mutta myös älä kirjoita pitkää esseetä
+- Yleensä 3-6 kohtaa tai 1-2 lyhyttä kappaletta
+- Käytä luetteloita (•, -, 1. 2. 3.) kun se helpottaa lukemista
+- Konkretia heti ensimmäiseksi
+- Korosta vain tärkeimmät asiat
+- Käytä lyhyitä, selkeitä lauseita
+- EI pitkäveteistä pohdiskelua tai turhaa täytesanaa
+- EI "kuten tiedät..." tai "huomaa että..." -tyylistä tekstiä
+
+ESIMERKKI HUONOSTA VASTAUKSESTA (EI NÄIN):
+"Opiskelussa on tärkeää muistaa, että motivaatio säilyy parhaiten, kun pidät riittävästi taukoja. Kuten tiedät, aivot tarvitsevat... [pitkät selitykset]"
+
+ESIMERKKI HYVÄSTÄ VASTAUKSESTA (NÄIN):
+"Suosittelen:
+• 25 min työ, 5 min tauko (Pomodoro)
+• Keskity ensin vaikeimpiin aineisiin
+• Jos olet 15h jäljellä, tee 3h/viikko"
+
+Muut ohjeet:
 - Anna VAIN tietoja joista olet varma
-- Jos et ole varma joistain tiedoista, sano se ääneen
-- Anna konkreettisia neuvoja YO-kokeisiin virallisten lähteisiin perustuen
-- Suosittele realistisia opiskelupäiviä
-- Muistuta levosta ja tauoista
-- Ole empaattinen ja kannustava
-- Korosta tietolähteisiin perustuvaa informaatiota`;
+- Jos et ole varma, sano se ääneen
+- Konkreettiset neuvot YO-kokeisiin
+- Realistiset opiskelusuunnitelmat
+- Korosta tietolähteisiin perustuvaa infoa
+
+VIIKKOSUUNNITELMAN MUOTO (JSON):
+Kun pyydetään viikkosuunnitelmaa, vastaa TÄSMÄLLEEN tässä muodossa, ilman lisäselityksiä:
+{
+  "Maanantai": {"8:00–9:00": "Aihe: alakohta", "9:00–10:00": "Aihe: alakohta", "10:00–11:00": "Aihe: alakohta", "11:00–12:00": "Aihe: alakohta", "12:00–13:00": "LOUNAS", "13:00–14:00": "Aihe: alakohta", "14:00–15:00": "Aihe: alakohta", "15:00–16:00": "LEPO", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""},
+  "Tiistai": {"8:00–9:00": "", ...},
+  ...kaikki 7 päivää...
+}
+Käytä tuntivälejä: 8:00–9:00, 9:00–10:00, jne. Täytä kaikki tunnit realistisesti ja sopivien emojien kanssa, jos ei tarvitse lukea kirjoita "VAPAA [emoji]".
+Lukujärjestyksessä on tunnit 8-22.
+`;
 }
 
 function formatBotReply(text) {
@@ -1194,7 +1223,7 @@ async function sendChatMessage(message) {
     }));
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1235,7 +1264,17 @@ async function sendChatMessage(message) {
       { role: "model", parts: [{ text: reply }] }
     );
 
-    botMsgDiv.innerHTML = `<div class="bubble">${formatBotReply(reply)}</div>`;
+    // Tarkista onko vastaus JSON
+    let bubbleContent = formatBotReply(reply);
+    
+    if (isValidJSON(reply)) {
+      lastBotJSON = reply;
+      bubbleContent = `<strong>✅ Viikkosuunnitelma luotu!</strong><br>
+      <button onclick="downloadJSON(lastBotJSON, 'viikkolusuunnitelma.json')" style="margin-top:10px; padding:8px 12px; background:#10b981; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">📥 Lataa JSON</button>
+      <details style="margin-top:10px; font-size:0.9em;"><summary>📋 Näytä JSON</summary><pre style="background:#1f2937; padding:10px; border-radius:5px; overflow-x:auto; max-height:300px; color:#e5e7eb;">${reply}</pre></details>`;
+    }
+    
+    botMsgDiv.innerHTML = `<div class="bubble">${bubbleContent}</div>`;
     updateChatbotStatus("connected", "● Yhdistetty");
 
   } catch (error) {
@@ -1261,6 +1300,33 @@ function updateChatbotStatus(status, text) {
   if (!statusEl) return;
   statusEl.textContent = text;
   statusEl.className = "chatbot-status" + (status === "offline" ? " offline" : status === "loading" ? " loading" : "");
+}
+
+function downloadJSON(jsonString, filename = "viikkolusuunnitelma.json") {
+  try {
+    const parsed = JSON.parse(jsonString);
+    const blob = new Blob([JSON.stringify(parsed, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast(`✅ ${filename} ladattu!`);
+  } catch (e) {
+    showToast("❌ JSON-virhe: " + e.message);
+  }
+}
+
+function isValidJSON(text) {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function resetChat() {
@@ -1319,6 +1385,8 @@ window.deleteExam = deleteExam;
 window.editExam = editExam;
 window.openPicker = openPicker;
 window.clearScheduleCell = clearScheduleCell;
+window.downloadJSON = downloadJSON;
+window.isValidJSON = isValidJSON;
 window.editWeeklyTarget = editWeeklyTarget;
 
 // ========== SIVUN LATAUS ==========
