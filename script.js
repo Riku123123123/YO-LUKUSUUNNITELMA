@@ -869,9 +869,61 @@ function showStatsModal() {
   `;
 }
 
+async function generateMotivationQuote() {
+  const motivationText = document.getElementById("motivationText");
+  if (!motivationText) return "";
+
+  const fallbackQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
+  const proxyUrl = getGeminiProxyUrl();
+
+  if (!proxyUrl || proxyUrl.includes("your-project")) {
+    return fallbackQuote;
+  }
+
+  try {
+    const response = await fetch(proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{
+              text: "Kirjoita yksi erittäin lyhyt, suomenkielinen, kannustava motivaatiolause YO-opiskelijalle. Vastaus saa olla vain yksi lause, ilman listoja ja ilman emojia."
+            }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 80
+        }
+      })
+    });
+
+    if (!response.ok) throw new Error("Motivaation luonti epäonnistui");
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const cleaned = text ? text.replace(/^(["'“”])|(["'“”])$/g, "").replace(/\s+/g, " ").trim() : "";
+    return cleaned || fallbackQuote;
+  } catch (error) {
+    console.error("Motivaatiolauseen luonti epäonnistui:", error);
+    return fallbackQuote;
+  }
+}
+
 function showMotivationModal() {
-  const randomQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
-  document.getElementById("motivationText").innerHTML = `"${randomQuote}"`;
+  const motivationText = document.getElementById("motivationText");
+  if (!motivationText) return;
+
+  motivationText.innerHTML = "🤖 Luodaan uutta motivaatiota...";
+
+  generateMotivationQuote().then((quote) => {
+    motivationText.innerHTML = `"${quote}"`;
+  }).catch(() => {
+    const fallbackQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
+    motivationText.innerHTML = `"${fallbackQuote}"`;
+  });
 }
 
 function formatTimeLeft(ms) {
@@ -1091,7 +1143,18 @@ function getGeminiApiKey() {
 }
 
 function getGeminiProxyUrl() {
-  return window.GEMINI_PROXY_URL || "https://your-project.vercel.app/api/gemini";
+  if (window.GEMINI_PROXY_URL) return window.GEMINI_PROXY_URL;
+
+  const hostname = window.location.hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return `${window.location.protocol}//${hostname}:3000/api/gemini`;
+  }
+
+  if (window.location.origin.includes("vercel.app") || window.location.origin.includes("netlify") || window.location.origin.includes("github.io")) {
+    return `${window.location.origin}/api/gemini`;
+  }
+
+  return "https://yo-lukusuunnitelma.vercel.app/api/gemini";
 }
 
 function getSystemPrompt() {
@@ -1294,6 +1357,10 @@ async function sendChatMessage(message) {
   } catch (error) {
     console.error("Chatbot virhe:", error);
     let userMsg = error.message;
+
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      userMsg = "🔌 AI-palvelu ei vastaa. Tarkista proxy-URL tai käynnistä taustapalvelu.";
+    }
     
     botMsgDiv.innerHTML = `
       <div class="bubble" style="color: #f87171;">
