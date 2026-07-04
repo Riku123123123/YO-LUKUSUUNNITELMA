@@ -1087,20 +1087,11 @@ let lastBotJSON = null;
 const MIN_REQUEST_INTERVAL = 3000;
 
 function getGeminiApiKey() {
-  let key = localStorage.getItem("gemini_api_key_yo");
-  if (!key) {
-    key = prompt(
-      "🔑 Anna Google Gemini API-avain (ilmainen):\n\n" +
-      "1. Mene: https://aistudio.google.com/apikey\n" +
-      "2. Luo uusi avain\n" +
-      "3. Kopioi ja liitä tähän\n\n" +
-      "Avain tallennetaan vain sinun selaimeesi."
-    );
-    if (key) {
-      localStorage.setItem("gemini_api_key_yo", key);
-    }
-  }
-  return key;
+  return "server";
+}
+
+function getGeminiProxyUrl() {
+  return window.GEMINI_PROXY_URL || "https://your-project.vercel.app/api/gemini";
 }
 
 function getSystemPrompt() {
@@ -1207,9 +1198,7 @@ async function sendChatMessage(message) {
 
   const API_KEY = getGeminiApiKey();
   if (!API_KEY) {
-    alert("🔑 API-avain puuttuu! Hanki se: https://aistudio.google.com/apikey");
-    updateChatbotStatus("offline", "⚠️ API-avain puuttuu");
-    return;
+      alert("🔑 API-avain puuttuu! Aseta se palvelimelle .env-tiedostoon.");
   }
 
   const messagesDiv = document.getElementById("chatbotMessages");
@@ -1249,25 +1238,22 @@ async function sendChatMessage(message) {
       parts: c.parts
     }));
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            ...conversationHistory,
-            { role: "user", parts: [{ text: `${systemPrompt}\n\nKysymys: ${message}` }] }
-          ],
-          generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 9999,
-            topP: 1,
-            topK: 40
-          }
-        })
-      }
-    );
+    const response = await fetch(getGeminiProxyUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          ...conversationHistory,
+          { role: 'user', parts: [{ text: `${systemPrompt}\n\nKysymys: ${message}` }] }
+        ],
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 9999,
+          topP: 1,
+          topK: 40
+        }
+      })
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
