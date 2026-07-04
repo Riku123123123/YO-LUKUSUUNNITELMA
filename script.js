@@ -1104,48 +1104,75 @@ function getGeminiApiKey() {
 }
 
 function getSystemPrompt() {
-  const examsInfo = exams.map(e => {
-    const studied = e.studied || 0;
-    const target = e.targetHours || 0;
+  const savedExams = Array.isArray(exams) && exams.length
+    ? exams
+    : (() => {
+        try {
+          return JSON.parse(localStorage.getItem("custom_exams_data") || "[]");
+        } catch {
+          return [];
+        }
+      })();
+
+  const examsInfo = savedExams.map(e => {
+    const studied = Number(e.studied || 0);
+    const target = Number(e.targetHours || e.target || 0);
     const pct = target > 0 ? ((studied / target) * 100).toFixed(0) : 0;
-    return `- ${e.name}: ${studied.toFixed(1)}/${target}h (${pct}%)`;
+    const examDate = e.date ? new Date(e.date) : null;
+    const dateText = examDate && !Number.isNaN(examDate.getTime())
+      ? examDate.toLocaleDateString("fi-FI")
+      : "ei määritelty";
+    const daysLeft = examDate && !Number.isNaN(examDate.getTime())
+      ? Math.max(0, Math.ceil((examDate - new Date()) / (1000 * 60 * 60 * 24)))
+      : null;
+    const daysText = daysLeft !== null ? `${daysLeft} päivää jäljellä` : "ei päivämäärää";
+    return `- ${e.name}: ${studied.toFixed(1)}/${target}h (${pct}%) | koe ${dateText} | ${daysText}`;
   }).join("\n");
 
   const weeklyTotal = getWeeklyTotal?.() || 0;
   const weeklyTarget = window.weeklyTarget || 30;
 
-  return `Olet YO-lukuapuri, joka auttaa ylioppilaskirjoituksiin valmistautuvia opiskelijoita Suomessa.
-  
-Käyttäjän tilanne:
+  return `Olet YO-lukuapuri ja ammattilainen opiskeluneuvoja, joka auttaa ylioppilaskirjoituksiin valmistautuvia opiskelijoita Suomessa.
+
+TARKOITUS:
+- Auttaa opiskelijaa saavuttamaan tavoitteensa mahdollisimman tehokkaasti
+- Antaa käytännöllisiä, realistisia ja henkilökohtaisia neuvoja
+- Toimia kuin kokenut opinto-ohjaaja, joka tietää miten opiskelua kannattaa suunnitella
+
+KÄYTTÄJÄN TILANNE:
 ${examsInfo || "Ei vielä kokeita."}
 Viikkotavoite: ${weeklyTotal}/${weeklyTarget}h
 
-VASTAUSTYYLI - ERITTÄIN TÄRKEÄ:
-⚠️ VASTAA TIIVIŠTI, MUTTA RIITTÄVÄN SELKEÄSTI:
-- Älä vastaa liian lyhyesti, mutta myös älä kirjoita pitkää esseetä
-- Yleensä 3-6 kohtaa tai 1-2 lyhyttä kappaletta
-- Käytä luetteloita (•, -, 1. 2. 3.) kun se helpottaa lukemista
-- Konkretia heti ensimmäiseksi
-- Korosta vain tärkeimmät asiat
+PERUSOHJEET:
+- Vastaa suomeksi, ystävällisesti, selkeästi ja asiantuntevasti
+- Ole kannustava, mutta realistinen
+- Anna aina konkreettisia toimia, ei vain yleisiä sanoja
+- Pidä vastaukset järkevässä pituudessa: riittävän pitkät, mutta ei liian pitkät
+- Keskitä huomio tärkeimpiin asioihin: tavoitteet, prioriteetit, käytännön suunnittelu, aikataulu, palautuminen
+- Jos kysymys on epäselvä, kysy tarkentava kysymys ennen kuin annat lopullisen vastauksen
+- Jos et ole varma jostain asiasta, sano se selkeästi
+
+VASTAUSTYYLI:
 - Käytä lyhyitä, selkeitä lauseita
-- EI pitkäveteistä pohdiskelua tai turhaa täytesanaa
-- EI "kuten tiedät..." tai "huomaa että..." -tyylistä tekstiä
+- Käytä luetteloita, kun ne helpottavat lukemista
+- Aloita tärkeimmällä asialla heti
+- Vältä turhaa toistoa ja ylimalkaista puhetta
+- Tee vastauksesta helposti luettava ja toimiva
+- Yleensä 4-8 tärkeää kohtaa riittää
 
-ESIMERKKI HUONOSTA VASTAUKSESTA (EI NÄIN):
-"Opiskelussa on tärkeää muistaa, että motivaatio säilyy parhaiten, kun pidät riittävästi taukoja. Kuten tiedät, aivot tarvitsevat... [pitkät selitykset]"
+TOIMINTAOHJEET:
+- Auttaa jakamaan opiskelun hallittaviin osiin
+- Ehdota realistisia tuntimääräarvioita ja päivittäistä rytmiä
+- Muista tauot, lepo, unet ja palautuminen
+- Yhdistä teoria ja käytäntö: esimerkiksi miten opiskella tehokkaasti, mitä tehdä, kun ei jaksa, mitä priorisoida
+- Jos opiskelijalla on jäljellä vähän aikaa, keskity kaikkein tärkeimpiin aiheisiin ja käytännön toimintoihin
 
-ESIMERKKI HYVÄSTÄ VASTAUKSESTA (NÄIN):
-"Suosittelen:
-• 25 min työ, 5 min tauko (Pomodoro)
-• Keskity ensin vaikeimpiin aineisiin
-• Jos olet 15h jäljellä, tee 3h/viikko"
-
-Muut ohjeet:
-- Anna VAIN tietoja joista olet varma
-- Jos et ole varma, sano se ääneen
-- Konkreettiset neuvot YO-kokeisiin
-- Realistiset opiskelusuunnitelmat
-- Korosta tietolähteisiin perustuvaa infoa
+AMMATILLINEN TAPA TOIMIA:
+- Näytä ymmärrystä opiskelijan tilanteesta
+- Anna suunnitelma, joka on realistinen ja saavutettavissa
+- Ilmoita, jos jokin asia vaatii enemmän työtä tai parempaa priorisointia
+- Tarjoa vaihtoehtoja, mutta tee niistä selkeät ja käytännölliset
+- Pidä vastaukset tehokkaina, ei “teoreettisina”
 
 VIIKKOSUUNNITELMAN MUOTO (JSON):
 Kun pyydetään viikkosuunnitelmaa, vastaa TÄSMÄLLEEN tässä muodossa, ilman lisäselityksiä:
@@ -1264,14 +1291,15 @@ async function sendChatMessage(message) {
       { role: "model", parts: [{ text: reply }] }
     );
 
-    // Tarkista onko vastaus JSON
+    // Tarkista onko vastaus JSON tai JSON-koodilohko
     let bubbleContent = formatBotReply(reply);
+    const parsedJson = extractJsonFromText(reply);
     
-    if (isValidJSON(reply)) {
-      lastBotJSON = reply;
+    if (parsedJson) {
+      lastBotJSON = parsedJson;
       bubbleContent = `<strong>✅ Viikkosuunnitelma luotu!</strong><br>
       <button onclick="downloadJSON(lastBotJSON, 'viikkolusuunnitelma.json')" style="margin-top:10px; padding:8px 12px; background:#10b981; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">📥 Lataa JSON</button>
-      <details style="margin-top:10px; font-size:0.9em;"><summary>📋 Näytä JSON</summary><pre style="background:#1f2937; padding:10px; border-radius:5px; overflow-x:auto; max-height:300px; color:#e5e7eb;">${reply}</pre></details>`;
+      <details style="margin-top:10px; font-size:0.9em;"><summary>📋 Näytä JSON</summary><pre style="background:#1f2937; padding:10px; border-radius:5px; overflow-x:auto; max-height:300px; color:#e5e7eb;">${escapeHtml(parsedJson)}</pre></details>`;
     }
     
     botMsgDiv.innerHTML = `<div class="bubble">${bubbleContent}</div>`;
@@ -1326,6 +1354,23 @@ function isValidJSON(text) {
     return true;
   } catch {
     return false;
+  }
+}
+
+function extractJsonFromText(text) {
+  if (!text) return null;
+
+  const trimmed = text.trim();
+  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  const candidate = fencedMatch ? fencedMatch[1].trim() : trimmed;
+
+  if (!candidate) return null;
+
+  try {
+    const parsed = JSON.parse(candidate);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return null;
   }
 }
 
