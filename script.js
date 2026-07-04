@@ -579,16 +579,16 @@ function importSchedule(file) {
 
 // Motivaatiolauseet
 const motivationQuotes = [
-  "Tänään voit tehdä sen, mitä huomenna olisi vaikeampi aloittaa.",
-  "Yksi hyvin tehty tunti voi muuttaa koko viikon.",
-  "Et tarvitse täydellistä päivää. Tarvitset vain yhden hyvän alun.",
-  "Sinä et ole jäljessä — sinulla on vain yksi seuraava askel edessä.",
-  "Pieni ponnistus nyt säästää sinua suurelta paineelta myöhemmin.",
-  "Aivot eivät kasva lepäten — ne kehittyvät, kun annat niille tehtävän.",
-  "Jokainen toisto tekee sinusta vahvemman.",
-  "Vauhti tulee siitä, kun et luovuta jo kolmannen tunnin jälkeen.",
-  "Sinulla on enemmän kykyä kuin luulet — vain tarpeeksi vähän kärsivällisyyttä.",
-  "Kokeeseen ei valmistuta yhdellä päivällä, mutta yksi hyvä päivä voi alkaa nyt."
+  "Menestys ei ole sattumaa. Se on kovaa työtä, sinnikkyyttä ja oppimista.",
+  "Jokainen tunti on askel lähempänä tavoitetta. Pysy vahvana! 💪",
+  "Yo-koetta ei pelätä, sitä harjoitellaan. Sinä pystyt tähän!",
+  "Pienikin askel eteenpäin on voitto. Jatka samaan malliin!",
+  "Tämäkin päivä on mahdollisuus tulla paremmaksi kuin eilen.",
+  "Kun tahtoo tarpeeksi, keinoja löytyy. Usko itseesi!",
+  "Jokainen opiskeltu asia on siemen tulevaisuuden menestykselle.",
+  "Tee tänään jotain, mistä huominen sinut kiittää.",
+  "Et voi voittaa, jos et aloita. Olet jo aloittanut - hienoa!",
+  "Vaikeimmat hetket erottavat tekijät haaveilijoista. Sinä olet tekijä!"
 ];
 
 // ========== KOKEIDEN DATA ==========
@@ -869,61 +869,9 @@ function showStatsModal() {
   `;
 }
 
-async function generateMotivationQuote() {
-  const motivationText = document.getElementById("motivationText");
-  if (!motivationText) return "";
-
-  const fallbackQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
-  const proxyUrl = getGeminiProxyUrl();
-
-  if (!proxyUrl || proxyUrl.includes("your-project")) {
-    return fallbackQuote;
-  }
-
-  try {
-    const response = await fetch(proxyUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{
-              text: "Kirjoita yksi erittäin lyhyt, suomenkielinen, kannustava motivaatiolause YO-opiskelijalle. Vastaus saa olla vain yksi lause, ilman listoja ja ilman emojia."
-            }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 80
-        }
-      })
-    });
-
-    if (!response.ok) throw new Error("Motivaation luonti epäonnistui");
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    const cleaned = text ? text.replace(/^(["'“”])|(["'“”])$/g, "").replace(/\s+/g, " ").trim() : "";
-    return cleaned || fallbackQuote;
-  } catch (error) {
-    console.error("Motivaatiolauseen luonti epäonnistui:", error);
-    return fallbackQuote;
-  }
-}
-
 function showMotivationModal() {
-  const motivationText = document.getElementById("motivationText");
-  if (!motivationText) return;
-
-  motivationText.innerHTML = "🤖 Luodaan uutta motivaatiota...";
-
-  generateMotivationQuote().then((quote) => {
-    motivationText.innerHTML = `"${quote}"`;
-  }).catch(() => {
-    const fallbackQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
-    motivationText.innerHTML = `"${fallbackQuote}"`;
-  });
+  const randomQuote = motivationQuotes[Math.floor(Math.random() * motivationQuotes.length)];
+  document.getElementById("motivationText").innerHTML = `"${randomQuote}"`;
 }
 
 function formatTimeLeft(ms) {
@@ -1139,22 +1087,20 @@ let lastBotJSON = null;
 const MIN_REQUEST_INTERVAL = 3000;
 
 function getGeminiApiKey() {
-  return "server";
-}
-
-function getGeminiProxyUrl() {
-  if (window.GEMINI_PROXY_URL) return window.GEMINI_PROXY_URL;
-
-  const hostname = window.location.hostname;
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return `${window.location.protocol}//${hostname}:3000/api/gemini`;
+  let key = localStorage.getItem("gemini_api_key_yo");
+  if (!key) {
+    key = prompt(
+      "🔑 Anna Google Gemini API-avain (ilmainen):\n\n" +
+      "1. Mene: https://aistudio.google.com/apikey\n" +
+      "2. Luo uusi avain\n" +
+      "3. Kopioi ja liitä tähän\n\n" +
+      "Avain tallennetaan vain sinun selaimeesi."
+    );
+    if (key) {
+      localStorage.setItem("gemini_api_key_yo", key);
+    }
   }
-
-  if (window.location.origin.includes("vercel.app") || window.location.origin.includes("netlify") || window.location.origin.includes("github.io")) {
-    return `${window.location.origin}/api/gemini`;
-  }
-
-  return "https://yo-lukusuunnitelma.vercel.app/api/gemini";
+  return key;
 }
 
 function getSystemPrompt() {
@@ -1261,7 +1207,9 @@ async function sendChatMessage(message) {
 
   const API_KEY = getGeminiApiKey();
   if (!API_KEY) {
-      alert("🔑 API-avain puuttuu! Aseta se palvelimelle .env-tiedostoon.");
+    alert("🔑 API-avain puuttuu! Hanki se: https://aistudio.google.com/apikey");
+    updateChatbotStatus("offline", "⚠️ API-avain puuttuu");
+    return;
   }
 
   const messagesDiv = document.getElementById("chatbotMessages");
@@ -1301,22 +1249,25 @@ async function sendChatMessage(message) {
       parts: c.parts
     }));
 
-    const response = await fetch(getGeminiProxyUrl(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          ...conversationHistory,
-          { role: 'user', parts: [{ text: `${systemPrompt}\n\nKysymys: ${message}` }] }
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 9999,
-          topP: 1,
-          topK: 40
-        }
-      })
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            ...conversationHistory,
+            { role: "user", parts: [{ text: `${systemPrompt}\n\nKysymys: ${message}` }] }
+          ],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 9999,
+            topP: 1,
+            topK: 40
+          }
+        })
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -1357,10 +1308,6 @@ async function sendChatMessage(message) {
   } catch (error) {
     console.error("Chatbot virhe:", error);
     let userMsg = error.message;
-
-    if (error instanceof TypeError && error.message === "Failed to fetch") {
-      userMsg = "🔌 AI-palvelu ei vastaa. Tarkista proxy-URL tai käynnistä taustapalvelu.";
-    }
     
     botMsgDiv.innerHTML = `
       <div class="bubble" style="color: #f87171;">
