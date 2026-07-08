@@ -1179,7 +1179,7 @@ Jos käyttäjä ei erikseen pyydä sinua tekemään viikkosuunnitelmaa, älä al
 Esimerkiksi jos käyttäjä kysyy: "Miten voisin lukea yo-kirjoituksiin?" Vastauksesi on normaaleja ohjeita ohjeiden mukaisesti, eikä viikkosuunnitelma.
 Jos käyttäjä kuitenkin kysyy: "Voisitko tehdä minulle viikkosuunnitelman?" Teet viikkosuunnitelman JSON-muodossa ohjeiden mukaisesti.
 
-Kun pyydetään viikkosuunnitelmaa, vastaa TÄSMÄLLEEN tässä muodossa, ilman lisäselityksiä:
+Kun pyydetään viikkosuunnitelmaa, vastaa TÄSMÄLLEEN tässä muodossa, selitä miksi tämä suunnitelma on hyvä:
 {
   "Maanantai": {"8:00–9:00": "Aihe: alakohta", "9:00–10:00": "Aihe: alakohta", "10:00–11:00": "Aihe: alakohta", "11:00–12:00": "Aihe: alakohta", "12:00–13:00": "LOUNAS", "13:00–14:00": "Aihe: alakohta", "14:00–15:00": "Aihe: alakohta", "15:00–16:00": "LEPO", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""},
   "Tiistai": {"8:00–9:00": "", ...},
