@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>YO LUKUSUUNNITELMA 2026 | Älykäs lukusuunnitelma</title>
+  <title>YO LUKUSUUNNITELMA 2027 | Älykäs lukusuunnitelma</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📘</text></svg>">
 </head>
 <body>
 <header class="glass-header">
   <div class="logo-area">
-    <h1>📘 YO LUKUSUUNNITELMA • 2026</h1>
+    <h1>📘 YO LUKUSUUNNITELMA • 2027</h1>
     <span class="badge">⚡ AI-tehostettu</span>
   </div>
   <div class="header-actions">
@@ -18,6 +18,7 @@
     <button id="statsModalBtn" class="icon-btn">📊 Tilastot</button>
     <button id="resourcesBtn" class="icon-btn">🔗 Resurssit</button>
     <button id="themeToggle" class="icon-btn">🌓 Teema</button>
+    <span id="saveStatus" class="save-status">✅ Tallennettu</span>
   </div>
 </header>
 
@@ -28,49 +29,56 @@
     <div class="add-exam-form">
       <select id="examSelect">
         <option value="">-- Valitse aine --</option>
-        <optgroup label="MA 14.9.2026">
-          <option value="Äidinkieli (lukutaito)|2026-09-14T09:00|40">📖 Äidinkieli ja kirjallisuus, lukutaidon koe (14.9.)</option>
+        <optgroup label="TI 16.3.2027">
+          <option value="Äidinkieli (lukutaito)|2027-03-16T09:00|40">📖 Äidinkieli ja kirjallisuus, lukutaidon koe (16.3.)</option>
+          <option value="Suomi toisena kielenä (lukutaito)|2027-03-16T09:00|45">🇫🇮 Suomi toisena kielenä ja kirjallisuus, lukutaidon ja kuullun ymmärtämisen osakoe (16.3.)</option>
         </optgroup>
-        <optgroup label="KE 16.9.2026">
-          <option value="Uskonto|2026-09-16T09:00|35">✝️ Uskonto (16.9.)</option>
-          <option value="Elämänkatsomustieto|2026-09-16T09:00|35">🌱 Elämänkatsomustieto (16.9.)</option>
-          <option value="Yhteiskuntaoppi|2026-09-16T09:00|35">🏛️ Yhteiskuntaoppi (16.9.)</option>
-          <option value="Kemia|2026-09-16T09:00|45">🧪 Kemia (16.9.)</option>
-          <option value="Maantiede|2026-09-16T09:00|55">🌍 Maantiede (16.9.)</option>
-          <option value="Terveystieto|2026-09-16T09:00|35">💚 Terveystieto (16.9.)</option>
+        <optgroup label="TO 18.3.2027">
+          <option value="Englanti (lyhyt)|2027-03-18T09:00|45">🇬🇧 Englanti, lyhyt oppimäärä (18.3.)</option>
+          <option value="Ranska (lyhyt)|2027-03-18T09:00|45">🇫🇷 Ranska, lyhyt oppimäärä (18.3.)</option>
+          <option value="Espanja (lyhyt)|2027-03-18T09:00|45">🇪🇸 Espanja, lyhyt oppimäärä (18.3.)</option>
+          <option value="Saksa (lyhyt)|2027-03-18T09:00|45">🇩🇪 Saksa, lyhyt oppimäärä (18.3.)</option>
+          <option value="Venäjä (lyhyt)|2027-03-18T09:00|45">🇷🇺 Venäjä, lyhyt oppimäärä (18.3.)</option>
+          <option value="Italia (lyhyt)|2027-03-18T09:00|45">🇮🇹 Italia, lyhyt oppimäärä (18.3.)</option>
+          <option value="Portugali (lyhyt)|2027-03-18T09:00|45">🇵🇹 Portugali, lyhyt oppimäärä (18.3.)</option>
+          <option value="Latina (lyhyt)|2027-03-18T09:00|45">🏛️ Latina, lyhyt oppimäärä (18.3.)</option>
+          <option value="Saame (lyhyt)|2027-03-18T09:00|45">🗺️ Saame, lyhyt oppimäärä (18.3.)</option>
         </optgroup>
-        <optgroup label="PE 18.9.2026 (pitkä)">
-          <option value="Englanti (pitkä)|2026-09-18T09:00|50">🇬🇧 Englanti, pitkä (18.9.)</option>
-          <option value="Ranska (pitkä)|2026-09-18T09:00|50">🇫🇷 Ranska, pitkä (18.9.)</option>
-          <option value="Espanja (pitkä)|2026-09-18T09:00|50">🇪🇸 Espanja, pitkä (18.9.)</option>
-          <option value="Saksa (pitkä)|2026-09-18T09:00|50">🇩🇪 Saksa, pitkä (18.9.)</option>
-          <option value="Venäjä (pitkä)|2026-09-18T09:00|50">🇷🇺 Venäjä, pitkä (18.9.)</option>
+        <optgroup label="PE 19.3.2027">
+          <option value="Äidinkieli (kirjoitustaito)|2027-03-19T09:00|40">✍️ Äidinkieli ja kirjallisuus, kirjoitustaidon koe (19.3.)</option>
+          <option value="Suomi toisena kielenä (kirjoitustaito)|2027-03-19T09:00|45">🇫🇮 Suomi toisena kielenä ja kirjallisuus, kirjoitustaidon osakoe (19.3.)</option>
         </optgroup>
-        <optgroup label="MA 21.9.2026">
-          <option value="Ruotsi (toinen kotimainen)|2026-09-21T09:00|45">🇸🇪 Toinen kotimainen, ruotsi (21.9.)</option>
+        <optgroup label="MA 22.3.2027">
+          <option value="Englanti (pitkä)|2027-03-22T09:00|50">🇬🇧 Englanti, pitkä oppimäärä (22.3.)</option>
+          <option value="Ranska (pitkä)|2027-03-22T09:00|50">🇫🇷 Ranska, pitkä oppimäärä (22.3.)</option>
+          <option value="Espanja (pitkä)|2027-03-22T09:00|50">🇪🇸 Espanja, pitkä oppimäärä (22.3.)</option>
+          <option value="Saksa (pitkä)|2027-03-22T09:00|50">🇩🇪 Saksa, pitkä oppimäärä (22.3.)</option>
+          <option value="Venäjä (pitkä)|2027-03-22T09:00|50">🇷🇺 Venäjä, pitkä oppimäärä (22.3.)</option>
         </optgroup>
-        <optgroup label="TI 22.9.2026">
-          <option value="Psykologia|2026-09-22T09:00|40">🧠 Psykologia (22.9.)</option>
-          <option value="Filosofia|2026-09-22T09:00|35">💭 Filosofia (22.9.)</option>
-          <option value="Historia|2026-09-22T09:00|45">📜 Historia (22.9.)</option>
-          <option value="Fysiikka|2026-09-22T09:00|50">⚛️ Fysiikka (22.9.)</option>
-          <option value="Biologia|2026-09-22T09:00|50">🧬 Biologia (22.9.)</option>
+        <optgroup label="KE 24.3.2027">
+          <option value="Matematiikka (pitkä)|2027-03-24T09:00|60">📐 Matematiikka, pitkä oppimäärä (24.3.)</option>
+          <option value="Matematiikka (lyhyt)|2027-03-24T09:00|55">📊 Matematiikka, lyhyt oppimäärä (24.3.)</option>
         </optgroup>
-        <optgroup label="TO 24.9.2026">
-          <option value="Matematiikka (pitkä)|2026-09-24T09:00|60">📐 Matematiikka, pitkä (24.9.)</option>
-          <option value="Matematiikka (lyhyt)|2026-09-24T09:00|55">📊 Matematiikka, lyhyt (24.9.)</option>
+        <optgroup label="TI 30.3.2027">
+          <option value="Psykologia|2027-03-30T09:00|40">🧠 Psykologia (30.3.)</option>
+          <option value="Filosofia|2027-03-30T09:00|35">💭 Filosofia (30.3.)</option>
+          <option value="Historia|2027-03-30T09:00|45">📜 Historia (30.3.)</option>
+          <option value="Fysiikka|2027-03-30T09:00|50">⚛️ Fysiikka (30.3.)</option>
+          <option value="Biologia|2027-03-30T09:00|50">🧬 Biologia (30.3.)</option>
         </optgroup>
-        <optgroup label="PE 25.9.2026">
-          <option value="Äidinkieli (kirjoitustaito)|2026-09-25T09:00|40">✍️ Äidinkieli, kirjoitustaito (25.9.)</option>
-          <option value="Suomi toisena kielenä|2026-09-25T09:00|45">🇫🇮 Suomi S2 (25.9.)</option>
+        <optgroup label="KE 31.3.2027">
+          <option value="Ruotsi (toinen kotimainen)|2027-03-31T09:00|45">🇸🇪 Toinen kotimainen kieli, ruotsi, pitkä ja keskipitkä oppimäärä (31.3.)</option>
         </optgroup>
-        <optgroup label="MA 28.9.2026 (lyhyt)">
-          <option value="Englanti (lyhyt)|2026-09-28T09:00|45">🇬🇧 Englanti, lyhyt (28.9.)</option>
-          <option value="Ranska (lyhyt)|2026-09-28T09:00|45">🇫🇷 Ranska, lyhyt (28.9.)</option>
-          <option value="Espanja (lyhyt)|2026-09-28T09:00|45">🇪🇸 Espanja, lyhyt (28.9.)</option>
-          <option value="Saksa (lyhyt)|2026-09-28T09:00|45">🇩🇪 Saksa, lyhyt (28.9.)</option>
-          <option value="Italia|2026-09-28T09:00|45">🇮🇹 Italia (28.9.)</option>
-          <option value="Latina|2026-09-28T09:00|45">🏛️ Latina (28.9.)</option>
+        <optgroup label="PE 2.4.2027">
+          <option value="Uskonto|2027-04-02T09:00|35">✝️ Uskonto (2.4.)</option>
+          <option value="Elämänkatsomustieto|2027-04-02T09:00|35">🌱 Elämänkatsomustieto (2.4.)</option>
+          <option value="Yhteiskuntaoppi|2027-04-02T09:00|35">🏛️ Yhteiskuntaoppi (2.4.)</option>
+          <option value="Kemia|2027-04-02T09:00|45">🧪 Kemia (2.4.)</option>
+          <option value="Maantiede|2027-04-02T09:00|55">🌍 Maantiede (2.4.)</option>
+          <option value="Terveystieto|2027-04-02T09:00|35">💚 Terveystieto (2.4.)</option>
+        </optgroup>
+        <optgroup label="MA 5.4.2027">
+          <option value="Saame (äidinkieli)|2027-04-05T09:00|45">🗺️ Saamen äidinkieli ja kirjallisuus -koe (5.4.)</option>
         </optgroup>
       </select>
       <button id="addSelectedExamBtn" class="primary-btn animate-btn">➕ Lisää valittu</button>
@@ -80,10 +88,22 @@
     </div>
     <div id="customExamForm" style="display: none;" class="custom-form">
       <input type="text" id="customExamName" placeholder="Kokeen nimi">
-      <input type="datetime-local" id="customExamDate" value="2026-09-16T09:00">
+      <input type="datetime-local" id="customExamDate" value="2027-03-16T09:00">
       <input type="number" id="customExamTarget" placeholder="Tavoitetunnit" value="40">
       <button id="addCustomExamBtn">✅ Lisää</button>
     </div>
+  </div>
+
+  <div class="overview-panel glass-card" id="overviewPanel">
+    <div class="summary-header">
+      <h3>📊 PÄIVÄN YHTEENVETO</h3>
+      <div class="overview-actions">
+        <button id="exportAppDataBtn" class="small-btn">💾 Varmuuskopio</button>
+        <button id="importAppDataBtn" class="small-btn">📂 Palauta</button>
+        <input type="file" id="importAppDataFile" accept=".json" style="display: none;">
+      </div>
+    </div>
+    <div id="overviewContent"></div>
   </div>
 
   <!-- Yhteenveto-paneeli (AI stats) -->
@@ -103,35 +123,69 @@
 
   <!-- AI CHATBOT -->
   <div class="chatbot-panel glass-card">
-    <div class="chatbot-header">
-      <h3>🤖 YO-AI APURI</h3>
-      <div class="header-actions">
-        <span class="chatbot-status" id="chatbotStatus">● Yhdistetty</span>
-        <button id="resetChatBtn" class="small-btn">🔄 Uusi</button>
-      </div>
-    </div>
-    
-    <div class="chatbot-messages" id="chatbotMessages">
-      <div class="chatbot-message bot">
-        <div class="bubble">
-          👋 Hei! Olen YO-lukuapuri. Kysy minulta:<br>
-          • "Kuinka valmistaudun YO-kokeisiin?"<br>
-          • "Miten järjestän opiskelun?"<br>
-          • "Millä tekniikalla opin paremmin?"
+    <div class="chatbot-shell">
+      <aside class="chat-sidebar" aria-label="Chatin sivupalkki">
+        <div class="chat-rail" aria-label="Chatin toiminnot">
+          <button class="chat-rail-btn active" id="toggleChatHistoryBtn" title="Avaa historia">☰</button>
+        </div>
+
+        <aside class="chat-history-sidebar hidden" id="chatHistorySidebar">
+          <div class="chat-history-toolbar">
+            <button class="chat-sidebar-action" id="newChatRailBtn" title="Uusi keskustelu">✎ Uusi</button>
+            <button class="chat-sidebar-action" id="apiKeyBtn" title="API-avain">◌ API</button>
+          </div>
+
+          <div class="chat-history-sidebar-header">
+            <h4>Historia</h4>
+          </div>
+          <div class="chat-history-list" id="chatHistoryList"></div>
+        </aside>
+      </aside>
+
+      <div class="chatbot-main-panel">
+        <div class="chatbot-header">
+          <h3>🤖 YO-AI APURI</h3>
+          <div class="header-actions">
+            <span class="chatbot-status" id="chatbotStatus">● Yhdistetty</span>
+            <button id="resetChatBtn" class="small-btn">🔄 Uusi</button>
+          </div>
+        </div>
+        
+        <div class="chatbot-messages" id="chatbotMessages">
+          <div class="chatbot-message bot">
+            <div class="bubble">
+              👋 Hei! Olen YO-lukuapuri. Kysy minulta:<br>
+              • "Kuinka valmistaudun YO-kokeisiin?"<br>
+              • "Miten järjestän opiskelun?"<br>
+              • "Millä tekniikalla opin paremmin?"
+            </div>
+          </div>
+        </div>
+        
+        <div class="chatbot-input-row">
+          <input type="text" id="chatbotInput" placeholder="Kysy YO-kokeisiin liittyen..." />
+          <button id="chatbotSendBtn">📤 Lähetä</button>
+        </div>
+        
+        <div class="chatbot-suggestions">
+          <button data-question="Tee minulle lukusuunnitelma">📐 Lukusuunnitelma</button>
+          <button data-question="Kuinka kauan kannattaa käyttää opiskeluaikaa?">⏱️ Opiskeluaika</button>
+          <button data-question="Millä tekniikalla opin tehokkaimmin?">🧠 Oppimistavat</button>
+          <button data-question="Kuinka hallitsen stressin?">😌 Stressin hallinta</button>
         </div>
       </div>
     </div>
-    
-    <div class="chatbot-input-row">
-      <input type="text" id="chatbotInput" placeholder="Kysy YO-kokeisiin liittyen..." />
-      <button id="chatbotSendBtn">📤 Lähetä</button>
-    </div>
-    
-    <div class="chatbot-suggestions">
-      <button data-question="Tee minulle lukusuunnitelma">📐 Lukusuunnitelma</button>
-      <button data-question="Kuinka kauan kannattaa käyttää opiskeluaikaa?">⏱️ Opiskeluaika</button>
-      <button data-question="Millä tekniikalla opin tehokkaimmin?">🧠 Oppimistavat</button>
-      <button data-question="Kuinka hallitsen stressin?">😌 Stressin hallinta</button>
+  </div>
+
+  <div class="conflict-modal hidden" id="newChatConfirmModal" aria-live="polite">
+    <div class="conflict-modal-content">
+      <h3>Uusi keskustelu</h3>
+      <p>Haluatko säilyttää nykyisen keskustelun vai poistaa sen heti?</p>
+      <div class="conflict-modal-actions">
+        <button id="saveOldChatBtn" class="primary-btn">💾 Tallenna vanha</button>
+        <button id="deleteOldChatBtn" class="secondary-btn danger-btn">🗑️ Poista heti</button>
+        <button id="cancelNewChatBtn" class="small-btn">Peruuta</button>
+      </div>
     </div>
   </div>
 
@@ -236,8 +290,21 @@
   </div>
 </div>
 
+<div id="aiScheduleModal" class="modal">
+  <div class="modal-content modal-large ai-plan-modal">
+    <span class="close-ai-plan-modal">&times;</span>
+    <h2>🤖 AI-suunnitelman hyväksyntä</h2>
+    <p class="ai-plan-intro">AI on ehdottanut viikon lukujärjestystä. Tarkista esikatselu ennen käyttöön ottamista.</p>
+    <pre id="pendingAiPlanPreview" class="ai-plan-preview">Ei esikatselua.</pre>
+    <div class="ai-plan-actions">
+      <button id="acceptAiPlanBtn" class="primary-btn">✅ Hyväksy</button>
+      <button id="rejectAiPlanBtn" class="secondary-btn">❌ Hylkää</button>
+    </div>
+  </div>
+</div>
+
 <footer>
-  ✨ YO Ultra Planner 2026 • AI-tehostettu seuranta • Mukautuva lukujärjestys • Pysy aikataulussa!
+  ✨ YO Ultra Planner 2027 • AI-tehostettu seuranta • Mukautuva lukujärjestys • Pysy aikataulussa!
 </footer>
 
 <script src="script.js"></script>

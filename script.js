@@ -1,6 +1,7 @@
 // ========== GLOBAALI DATA ==========
 let exams = [];
 let nextId = 1;
+let pendingAiSchedule = null;
 
 // ========== VIIKKOTAVOITE ==========
 let weeklyTarget = 30;
@@ -107,6 +108,18 @@ function loadWeeklyData() {
 function saveWeeklyData() {
   localStorage.setItem("weekly_target", weeklyTarget);
   localStorage.setItem("weekly_study_log", JSON.stringify(weeklyStudyLog));
+  updateSaveStatus("✅ Tallennettu");
+}
+
+function updateSaveStatus(message = "✅ Tallennettu") {
+  const statusNode = document.getElementById("saveStatus");
+  if (!statusNode) return;
+  statusNode.textContent = message;
+  statusNode.style.opacity = "1";
+  clearTimeout(updateSaveStatus._timer);
+  updateSaveStatus._timer = setTimeout(() => {
+    statusNode.textContent = "✅ Tallennettu";
+  }, 1800);
 }
 
 function initWeeklyLog() {
@@ -276,6 +289,7 @@ function loadScheduleFromStorage() {
 
 function saveScheduleToStorage() {
   localStorage.setItem("ultra_schedule", JSON.stringify(currentSchedule));
+  updateSaveStatus("✅ Tallennettu");
 }
 
 function setScheduleCell(day, timeSlot, value) {
@@ -605,6 +619,72 @@ function loadData() {
 
 function saveData() {
   localStorage.setItem("custom_exams_data", JSON.stringify(exams));
+  updateSaveStatus("✅ Tallennettu");
+}
+
+function getAppSnapshot() {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    exams,
+    weeklyTarget,
+    weeklyStudyLog,
+    schedule: currentSchedule,
+    chatHistory,
+    theme: document.body.classList.contains("light") ? "light" : "dark"
+  };
+}
+
+function exportAppData() {
+  const snapshot = getAppSnapshot();
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `yo-planner-varmuuskopio-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  showToast("💾 Varmuuskopio ladattu");
+}
+
+function importAppData(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed || typeof parsed !== "object") throw new Error("Virheellinen JSON");
+
+      if (Array.isArray(parsed.exams)) exams = parsed.exams;
+      if (typeof parsed.weeklyTarget === "number") weeklyTarget = parsed.weeklyTarget;
+      if (Array.isArray(parsed.weeklyStudyLog)) weeklyStudyLog = parsed.weeklyStudyLog;
+      if (parsed.schedule && typeof parsed.schedule === "object") currentSchedule = parsed.schedule;
+      if (Array.isArray(parsed.chatHistory)) {
+        chatHistory = parsed.chatHistory;
+        saveChatHistory();
+      }
+      if (parsed.theme === "light") document.body.classList.add("light");
+      else document.body.classList.remove("light");
+      localStorage.setItem("ultra_theme", document.body.classList.contains("light") ? "light" : "dark");
+
+      saveData();
+      saveWeeklyData();
+      saveScheduleToStorage();
+      renderAllExams();
+      renderTimetable();
+      updateAISummary();
+      updateWeeklySummary();
+      renderOverviewPanel();
+      if (typeof renderChatHistory === "function") renderChatHistory();
+      showToast("📂 Tiedot palautettu onnistuneesti");
+    } catch (error) {
+      console.error(error);
+      alert("Virhe: varmuuskopio ei ole kelvollinen. Valitse toimiva JSON-tiedosto.");
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ========== APUFUNKTIOT ==========
@@ -808,6 +888,7 @@ function updateAISummary() {
       💡 ${motivationMessage}
     </div>
   `;
+  renderOverviewPanel();
 }
 
 function getAISuggestion() {
@@ -865,6 +946,48 @@ function showStatsModal() {
           🔥 Putki: ${e.streak?.count || 0} pv | ✏️ ${e.history?.length || 0} lukukertaa
         </div>
       `}).join('')}
+    </div>
+  `;
+}
+
+function renderOverviewPanel() {
+  const root = document.getElementById("overviewContent");
+  if (!root) return;
+
+  const totalTarget = exams.reduce((sum, e) => sum + Number(e.targetHours || 0), 0);
+  const totalStudied = exams.reduce((sum, e) => sum + Number(e.studied || 0), 0);
+  const nextExam = [...exams].sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+  const nextExamText = nextExam ? `${nextExam.name} • ${new Date(nextExam.date).toLocaleDateString("fi-FI")}` : "Ei tulevia kokeita";
+  const attention = totalTarget > 0 ? Math.max(0, Math.min(100, (totalStudied / totalTarget) * 100)) : 0;
+  const focus = nextExam ? Math.max(0, Math.ceil((nextExam.targetHours - nextExam.studied) / Math.max(1, Math.ceil((new Date(nextExam.date) - new Date()) / (1000 * 60 * 60 * 24))))) : 0;
+  const weekText = `${getWeeklyTotal().toFixed(1)} / ${weeklyTarget} h`;
+
+  root.innerHTML = `
+    <div class="overview-grid">
+      <div class="overview-card accent">
+        <span>📚 Kokeet</span>
+        <strong>${exams.length}</strong>
+        <small>aktiivista</small>
+      </div>
+      <div class="overview-card">
+        <span>📈 Edistyminen</span>
+        <strong>${attention.toFixed(0)}%</strong>
+        <small>kokonaisnäyttö</small>
+      </div>
+      <div class="overview-card">
+        <span>🧠 Viikko</span>
+        <strong>${weekText}</strong>
+        <small>opiskelutunnit</small>
+      </div>
+      <div class="overview-card">
+        <span>🎯 Seuraava</span>
+        <strong>${focus}h</strong>
+        <small>${nextExamText}</small>
+      </div>
+    </div>
+    <div class="focus-box">
+      <strong>📌 Päivän fokus:</strong>
+      ${nextExam ? `Tee ${Math.max(1, Math.ceil((nextExam.targetHours - nextExam.studied) / 3))}h ${nextExam.name} -kertausta ja pidä yksi 10 minuutin tauko.` : "Lisää koe ja tee henkilökohtainen lukusuunnitelma."}
     </div>
   `;
 }
@@ -1017,6 +1140,7 @@ function initModals() {
   const motivationModal = document.getElementById("motivationModal");
   const statsModal = document.getElementById("statsModal");
   const resourcesModal = document.getElementById("resourcesModal");
+  const aiScheduleModal = document.getElementById("aiScheduleModal");
   
   document.getElementById("motivationBtn").onclick = () => {
     showMotivationModal();
@@ -1030,21 +1154,33 @@ function initModals() {
     resourcesModal.style.display = "block";
   };
   
-  document.querySelectorAll(".close-modal, .close-modal-stats, .close-modal-resources").forEach(btn => {
+  document.querySelectorAll(".close-modal, .close-modal-stats, .close-modal-resources, .close-ai-plan-modal").forEach(btn => {
     btn.onclick = () => {
       motivationModal.style.display = "none";
       statsModal.style.display = "none";
       resourcesModal.style.display = "none";
+      if (aiScheduleModal) aiScheduleModal.style.display = "none";
     };
   });
   window.onclick = (e) => {
     if (e.target === motivationModal) motivationModal.style.display = "none";
     if (e.target === statsModal) statsModal.style.display = "none";
     if (e.target === resourcesModal) resourcesModal.style.display = "none";
+    if (e.target === aiScheduleModal) aiScheduleModal.style.display = "none";
   };
   document.getElementById("newMotivationBtn").onclick = () => {
     showMotivationModal();
   };
+  if (document.getElementById("acceptAiPlanBtn")) {
+    document.getElementById("acceptAiPlanBtn").onclick = applyPendingAiSchedule;
+  }
+  if (document.getElementById("rejectAiPlanBtn")) {
+    document.getElementById("rejectAiPlanBtn").onclick = () => {
+      pendingAiSchedule = null;
+      if (aiScheduleModal) aiScheduleModal.style.display = "none";
+      showToast("❌ AI-suunnitelma hylätty");
+    };
+  }
 }
 
 function initTimetableButtons() {
@@ -1053,6 +1189,9 @@ function initTimetableButtons() {
   const exportBtn = document.getElementById("exportScheduleBtn");
   const importBtn = document.getElementById("importScheduleBtn");
   const importFile = document.getElementById("importScheduleFile");
+  const exportAppBtn = document.getElementById("exportAppDataBtn");
+  const importAppBtn = document.getElementById("importAppDataBtn");
+  const importAppFile = document.getElementById("importAppDataFile");
   
   if (loadBtn) loadBtn.onclick = loadAnnaSchedule;
   if (clearBtn) clearBtn.onclick = clearSchedule;
@@ -1065,6 +1204,16 @@ function initTimetableButtons() {
       if (e.target.files.length > 0) {
         importSchedule(e.target.files[0]);
         importFile.value = "";
+      }
+    };
+  }
+  if (exportAppBtn) exportAppBtn.onclick = exportAppData;
+  if (importAppBtn) importAppBtn.onclick = () => importAppFile.click();
+  if (importAppFile) {
+    importAppFile.onchange = (e) => {
+      if (e.target.files.length > 0) {
+        importAppData(e.target.files[0]);
+        importAppFile.value = "";
       }
     };
   }
@@ -1081,26 +1230,201 @@ function startAutoRefresh() {
 
 // ========== CHATBOT (GEMINI API) ==========
 let chatHistory = [];
+let conversationList = [];
+let activeConversationId = null;
 let isChatLoading = false;
 let lastRequestTime = 0;
 let lastBotJSON = null;
 const MIN_REQUEST_INTERVAL = 3000;
+const CHAT_HISTORY_KEY = "yo_chat_history";
+const SCHEDULE_TIME_SLOTS = [
+  "8:00–9:00", "9:00–10:00", "10:00–11:00", "11:00–12:00",
+  "12:00–13:00", "13:00–14:00", "14:00–15:00", "15:00–16:00",
+  "16:00–17:00", "17:00–18:00", "18:00–19:00", "19:00–20:00",
+  "20:00–21:00", "21:00–22:00"
+];
+
+function getActiveConversation() {
+  if (!conversationList.length) {
+    const defaultConversation = {
+      id: `chat-${Date.now()}`,
+      title: "Keskustelu 1",
+      messages: []
+    };
+    conversationList = [defaultConversation];
+    activeConversationId = defaultConversation.id;
+  }
+
+  const active = conversationList.find(item => item.id === activeConversationId) || conversationList[conversationList.length - 1];
+  activeConversationId = active.id;
+  chatHistory = Array.isArray(active.messages) ? active.messages : [];
+  return active;
+}
+
+function renderConversationList() {
+  const listEl = document.getElementById("chatHistoryList");
+  if (!listEl) return;
+
+  listEl.innerHTML = "";
+  if (!conversationList.length) return;
+
+  [...conversationList].reverse().forEach((conversation, index) => {
+    const title = conversation.title || `Keskustelu ${conversationList.length - index}`;
+    const previewText = Array.isArray(conversation.messages) && conversation.messages.length
+      ? (conversation.messages[conversation.messages.length - 1]?.parts?.[0]?.text || "").replace(/\s+/g, " ").slice(0, 20) || "Uusi keskustelu"
+      : "Uusi keskustelu";
+
+    const row = document.createElement("div");
+    row.className = "chat-history-item-row";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `chat-history-item ${conversation.id === activeConversationId ? "active" : ""}`;
+    button.textContent = `${title}${previewText ? ` • ${previewText}` : ""}`.trim();
+    button.title = title;
+    button.addEventListener("click", () => {
+      activeConversationId = conversation.id;
+      const active = getActiveConversation();
+      chatHistory = active.messages;
+      renderConversationList();
+      renderChatHistory();
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "chat-history-delete-btn";
+    deleteBtn.textContent = "×";
+    deleteBtn.title = "Poista keskustelu";
+    deleteBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteConversation(conversation.id);
+    });
+
+    row.appendChild(button);
+    row.appendChild(deleteBtn);
+    listEl.appendChild(row);
+  });
+}
+
+function saveChatHistory() {
+  const active = getActiveConversation();
+  active.messages = Array.isArray(chatHistory) ? chatHistory : [];
+  if (!active.title || active.title === "Keskustelu") {
+    active.title = `Keskustelu ${conversationList.findIndex(item => item.id === active.id) + 1}`;
+  }
+
+  localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify({
+    conversations: conversationList,
+    activeConversationId
+  }));
+}
+
+function renderChatHistory() {
+  const messagesDiv = document.getElementById("chatbotMessages");
+  if (!messagesDiv) return;
+
+  const active = getActiveConversation();
+  chatHistory = Array.isArray(active.messages) ? active.messages : [];
+  messagesDiv.innerHTML = "";
+
+  if (chatHistory.length === 0) {
+    messagesDiv.innerHTML = `
+      <div class="chatbot-message bot">
+        <div class="bubble">
+          👋 Hei! Olen YO-lukuapuri. Kysy minulta:<br>
+          • "Kuinka valmistaudun YO-kokeisiin?"<br>
+          • "Miten järjestän opiskelun?"<br>
+          • "Millä tekniikalla opin paremmin?"
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  chatHistory.forEach(entry => {
+    const message = document.createElement("div");
+    message.className = `chatbot-message ${entry.role === "user" ? "user" : "bot"}`;
+    const text = entry.parts?.[0]?.text || "";
+    const bubbleContent = entry.role === "user" ? escapeHtml(text) : formatBotReply(text);
+    message.innerHTML = `<div class="bubble">${bubbleContent}</div>`;
+    messagesDiv.appendChild(message);
+  });
+
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function loadChatHistory() {
+  try {
+    const saved = localStorage.getItem(CHAT_HISTORY_KEY);
+    if (!saved) {
+      conversationList = [{ id: `chat-${Date.now()}`, title: "Keskustelu 1", messages: [] }];
+      activeConversationId = conversationList[0].id;
+      chatHistory = [];
+      renderConversationList();
+      renderChatHistory();
+      return;
+    }
+
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed)) {
+      const migrated = parsed.filter(item => item && typeof item.role === "string" && Array.isArray(item.parts));
+      conversationList = [{ id: `chat-${Date.now()}`, title: "Keskustelu 1", messages: migrated }];
+      activeConversationId = conversationList[0].id;
+    } else if (parsed && Array.isArray(parsed.conversations)) {
+      conversationList = parsed.conversations
+        .filter(item => item && typeof item.id === "string")
+        .map((item, index) => ({
+          id: item.id,
+          title: item.title || `Keskustelu ${index + 1}`,
+          messages: Array.isArray(item.messages) ? item.messages.filter(entry => entry && typeof entry.role === "string" && Array.isArray(entry.parts)) : []
+        }));
+      activeConversationId = parsed.activeConversationId || conversationList[conversationList.length - 1]?.id || null;
+    } else {
+      conversationList = [{ id: `chat-${Date.now()}`, title: "Keskustelu 1", messages: [] }];
+      activeConversationId = conversationList[0].id;
+    }
+  } catch (error) {
+    console.warn("Chat-historian lataus epäonnistui:", error);
+    conversationList = [{ id: `chat-${Date.now()}`, title: "Keskustelu 1", messages: [] }];
+    activeConversationId = conversationList[0].id;
+  }
+
+  const active = getActiveConversation();
+  chatHistory = Array.isArray(active.messages) ? active.messages : [];
+  renderConversationList();
+  renderChatHistory();
+}
+
+function promptForGeminiApiKey(force = false) {
+  if (force) {
+    localStorage.removeItem("gemini_api_key_yo");
+  }
+
+  const existingKey = localStorage.getItem("gemini_api_key_yo");
+  if (existingKey && !force) {
+    return existingKey.trim();
+  }
+
+  const key = prompt(
+    "🔑 Anna Google Gemini API-avain (ilmainen):\n\n" +
+    "1. Mene: https://aistudio.google.com/apikey\n" +
+    "2. Luo uusi avain\n" +
+    "3. Kopioi ja liitä tähän\n\n" +
+    "Avain tallennetaan vain sinun selaimeesi."
+  );
+
+  const cleanedKey = (key || "").trim();
+  if (!cleanedKey) {
+    showToast("🔑 API-avain puuttuu. Anna avain jatkaaksesi.", 2500);
+    return "";
+  }
+
+  localStorage.setItem("gemini_api_key_yo", cleanedKey);
+  return cleanedKey;
+}
 
 function getGeminiApiKey() {
-  let key = localStorage.getItem("gemini_api_key_yo");
-  if (!key) {
-    key = prompt(
-      "🔑 Anna Google Gemini API-avain (ilmainen):\n\n" +
-      "1. Mene: https://aistudio.google.com/apikey\n" +
-      "2. Luo uusi avain\n" +
-      "3. Kopioi ja liitä tähän\n\n" +
-      "Avain tallennetaan vain sinun selaimeesi."
-    );
-    if (key) {
-      localStorage.setItem("gemini_api_key_yo", key);
-    }
-  }
-  return key;
+  return promptForGeminiApiKey(false);
 }
 
 function getSystemPrompt() {
@@ -1175,19 +1499,65 @@ AMMATILLINEN TAPA TOIMIA:
 - Pidä vastaukset tehokkaina, ei “teoreettisina”
 
 VIIKKOSUUNNITELMAN MUOTO (JSON):
+<<<<<<< HEAD
 Jos käyttäjä ei erikseen pyydä sinua tekemään viikkosuunnitelmaa, älä ala tekemään sellaista.
 Esimerkiksi jos käyttäjä kysyy: "Miten voisin lukea yo-kirjoituksiin?" Vastauksesi on normaaleja ohjeita ohjeiden mukaisesti, eikä viikkosuunnitelma.
 Jos käyttäjä kuitenkin kysyy: "Voisitko tehdä minulle viikkosuunnitelman?" Teet viikkosuunnitelman JSON-muodossa ohjeiden mukaisesti.
 
 Kun pyydetään viikkosuunnitelmaa, vastaa TÄSMÄLLEEN tässä muodossa, selitä miksi tämä suunnitelma on hyvä:
+=======
+Vastaa TÄSMÄLLEEN TÄSSÄ MUODOSSA, ilman lisäselityksiä. ÄLÄ käytä muita kellonaikoja tai muotoja. AINA tasatunnin välein 8:00–22:00.
+>>>>>>> e398d26 (Uusi ja paranneltu YO_LUKUSUUNNITELMA 2027 KEVÄT -PÄIVITYS)
 {
-  "Maanantai": {"8:00–9:00": "Aihe: alakohta", "9:00–10:00": "Aihe: alakohta", "10:00–11:00": "Aihe: alakohta", "11:00–12:00": "Aihe: alakohta", "12:00–13:00": "LOUNAS", "13:00–14:00": "Aihe: alakohta", "14:00–15:00": "Aihe: alakohta", "15:00–16:00": "LEPO", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""},
-  "Tiistai": {"8:00–9:00": "", ...},
-  ...kaikki 7 päivää...
+  "Maanantai": {"8:00–9:00": "", "9:00–10:00": "", "10:00–11:00": "", "11:00–12:00": "", "12:00–13:00": "LOUNAS", "13:00–14:00": "", "14:00–15:00": "", "15:00–16:00": "LEPO", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""},
+  "Tiistai": {"8:00–9:00": "", "9:00–10:00": "", "10:00–11:00": "", "11:00–12:00": "", "12:00–13:00": "LOUNAS", "13:00–14:00": "", "14:00–15:00": "", "15:00–16:00": "LEPO", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""},
+  "Keskiviikko": {"8:00–9:00": "", "9:00–10:00": "", "10:00–11:00": "", "11:00–12:00": "", "12:00–13:00": "LOUNAS", "13:00–14:00": "", "14:00–15:00": "", "15:00–16:00": "LEPO", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""},
+  "Torstai": {"8:00–9:00": "", "9:00–10:00": "", "10:00–11:00": "", "11:00–12:00": "", "12:00–13:00": "LOUNAS", "13:00–14:00": "", "14:00–15:00": "", "15:00–16:00": "LEPO", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""},
+  "Perjantai": {"8:00–9:00": "", "9:00–10:00": "", "10:00–11:00": "", "11:00–12:00": "", "12:00–13:00": "LOUNAS", "13:00–14:00": "", "14:00–15:00": "", "15:00–16:00": "LEPO", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""},
+  "Lauantai": {"8:00–9:00": "", "9:00–10:00": "", "10:00–11:00": "", "11:00–12:00": "", "12:00–13:00": "", "13:00–14:00": "", "14:00–15:00": "", "15:00–16:00": "", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""},
+  "Sunnuntai": {"8:00–9:00": "", "9:00–10:00": "", "10:00–11:00": "", "11:00–12:00": "", "12:00–13:00": "", "13:00–14:00": "", "14:00–15:00": "", "15:00–16:00": "", "16:00–17:00": "", "17:00–18:00": "", "18:00–19:00": "", "19:00–20:00": "", "20:00–21:00": "", "21:00–22:00": ""}
 }
-Käytä tuntivälejä: 8:00–9:00, 9:00–10:00, jne. Täytä kaikki tunnit realistisesti ja sopivien emojien kanssa, jos ei tarvitse lukea kirjoita "VAPAA [emoji]".
-Lukujärjestyksessä on tunnit 8-22.
+VAIN nämä avaimet ovat sallittuja: 8:00–9:00, 9:00–10:00, ..., 21:00–22:00.
+ÄLÄ käytä "8.00", "08:00", "8:00-9:00", "8AM", "9.00", muita kellonaikoja tai listamuotoja.
+Aseta arvoiksi lyhyitä mutta tarkentavia kuvauksia, esim. "Matematiikka: teoria", "Englanti: sanasto", "LOUNAS", "LEPO", "VAPAA", "Kertaustunti" tai tyhjä merkkijono "".
+Varmista, että arvo on tekstiä, ei numeroa ja ei muita kellonaikoja.
+Älä anna viikkosuunnitelmaa ilman, että käyttäjä pyytää sitä. Voit ehdottaa käyttäjälle, että hän pyytää viikkosuunnitelmaa, mutta älä luo sitä ilman pyyntöä.
 `;
+}
+
+function validateScheduleObject(schedule) {
+  if (!schedule || typeof schedule !== "object") return { valid: false, reason: "Vastaus ei ole JSON-objekti." };
+
+  for (const day of DAYS) {
+    if (!Object.prototype.hasOwnProperty.call(schedule, day)) {
+      return { valid: false, reason: `Puuttuva päivä: ${day}` };
+    }
+    const daySchedule = schedule[day];
+    if (!daySchedule || typeof daySchedule !== "object") {
+      return { valid: false, reason: `Päivän ${day} data on virheellinen.` };
+    }
+
+    const keys = Object.keys(daySchedule);
+    if (keys.length !== SCHEDULE_TIME_SLOTS.length) {
+      return { valid: false, reason: `Päivän ${day} pitää sisältää täsmälleen ${SCHEDULE_TIME_SLOTS.length} tuntia.` };
+    }
+
+    for (const slot of SCHEDULE_TIME_SLOTS) {
+      if (!Object.prototype.hasOwnProperty.call(daySchedule, slot)) {
+        return { valid: false, reason: `Päivässä ${day} puuttuu slotti ${slot}` };
+      }
+      const value = daySchedule[slot];
+      if (typeof value !== "string") {
+        return { valid: false, reason: `Päivän ${day} slotissa ${slot} arvo ei ole merkkijono.` };
+      }
+      if (value.trim() === "") continue;
+      if (/\d/.test(value) && !/\d{1,2}:\d{2}/.test(value)) {
+        return { valid: false, reason: `Päivän ${day} slotissa ${slot} arvo näyttää virheelliseltä. Käytä tekstiä, esim. "Matematiikka: teoria".` };
+      }
+    }
+  }
+
+  return { valid: true };
 }
 
 function formatBotReply(text) {
@@ -1197,6 +1567,68 @@ function formatBotReply(text) {
     .replace(/\n/g, "<br>");
   return formatted;
 }
+
+function renderAiSchedulePreview(schedule) {
+  if (!schedule || typeof schedule !== "object") return "<p>Ei esikatseltavaa suunnitelmaa.</p>";
+
+  let rows = "";
+  for (const timeSlot of HOURS) {
+    const rowCells = DAYS.map(day => {
+      const value = schedule[day]?.[timeSlot] || "";
+      const color = getActivityColor(value);
+      const safeValue = escapeHtml(value || "—");
+      return `<td style="padding: 8px 6px; border: 1px solid rgba(255,255,255,0.08); background: ${value ? `${color}22` : 'transparent'}; color: #eef2ff; text-align: center; min-width: 90px;">${safeValue}</td>`;
+    }).join("");
+    rows += `<tr><td style="padding: 8px 6px; border: 1px solid rgba(255,255,255,0.08); font-weight: 700; color: #a5f3fc; min-width: 90px;">${timeSlot}</td>${rowCells}</tr>`;
+  }
+
+  return `
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.72rem; border-radius: 12px; overflow: hidden;">
+      <thead>
+        <tr>
+          <th style="padding: 8px 6px; border: 1px solid rgba(255,255,255,0.08); background: rgba(45,212,191,0.15);">Aika</th>
+          ${DAYS.map(day => `<th style="padding: 8px 6px; border: 1px solid rgba(255,255,255,0.08); background: rgba(139,92,246,0.15);">${day}</th>`).join("")}
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function openAiScheduleModal() {
+  const modal = document.getElementById("aiScheduleModal");
+  const preview = document.getElementById("pendingAiPlanPreview");
+  if (!modal || !preview || !pendingAiSchedule) {
+    showToast("❌ Ei hyväksyttävää AI-suunnitelmaa");
+    return;
+  }
+  preview.innerHTML = renderAiSchedulePreview(pendingAiSchedule);
+  modal.style.display = "block";
+}
+
+function applyPendingAiSchedule() {
+  if (!pendingAiSchedule) {
+    showToast("❌ Ei AI-suunnitelmaa saatavilla");
+    return;
+  }
+
+  const validation = validateScheduleObject(pendingAiSchedule);
+  if (!validation.valid) {
+    showToast(`❌ Suunnitelma virheellinen: ${validation.reason}`);
+    return;
+  }
+
+  currentSchedule = JSON.parse(JSON.stringify(pendingAiSchedule));
+  saveScheduleToStorage();
+  renderTimetable();
+  pendingAiSchedule = null;
+  const modal = document.getElementById("aiScheduleModal");
+  if (modal) modal.style.display = "none";
+  showToast("✅ AI-suunnitelma otettu käyttöön");
+}
+
+window.openAiScheduleModal = openAiScheduleModal;
+window.applyPendingAiSchedule = applyPendingAiSchedule;
 
 async function sendChatMessage(message) {
   if (!message.trim()) return;
@@ -1282,7 +1714,11 @@ async function sendChatMessage(message) {
       }
       if (response.status === 401 || response.status === 403) {
         localStorage.removeItem("gemini_api_key_yo");
-        throw new Error("🔑 API-avain virheellinen. Poista ja anna uusi.");
+        const replacementKey = promptForGeminiApiKey(true);
+        if (!replacementKey) {
+          throw new Error("🔑 API-avain virheellinen. Anna uusi avain napista API-avain.");
+        }
+        throw new Error("🔑 API-avain vaihdettu. Yritä lähetystä uudelleen.");
       }
       throw new Error(errorMsg);
     }
@@ -1294,16 +1730,34 @@ async function sendChatMessage(message) {
       { role: "user", parts: [{ text: message }] },
       { role: "model", parts: [{ text: reply }] }
     );
+    saveChatHistory();
 
-    // Tarkista onko vastaus JSON tai JSON-koodilohko
     let bubbleContent = formatBotReply(reply);
     const parsedJson = extractJsonFromText(reply);
-    
+
     if (parsedJson) {
-      lastBotJSON = parsedJson;
-      bubbleContent = `<strong>✅ Viikkosuunnitelma luotu!</strong><br>
-      <button onclick="downloadJSON(lastBotJSON, 'viikkolusuunnitelma.json')" style="margin-top:10px; padding:8px 12px; background:#10b981; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">📥 Lataa JSON</button>
-      <details style="margin-top:10px; font-size:0.9em;"><summary>📋 Näytä JSON</summary><pre style="background:#1f2937; padding:10px; border-radius:5px; overflow-x:auto; max-height:300px; color:#e5e7eb;">${escapeHtml(parsedJson)}</pre></details>`;
+      try {
+        const parsedSchedule = JSON.parse(parsedJson);
+        const validation = validateScheduleObject(parsedSchedule);
+
+        if (!validation.valid) {
+          bubbleContent = `<strong>⚠️ Virheellinen viikkosuunnitelma</strong><br>${escapeHtml(validation.reason)}<br><br>Anna vastaus vain tasatunnein 8:00–22:00 -muodossa.`;
+          lastBotJSON = null;
+          pendingAiSchedule = null;
+        } else {
+          lastBotJSON = parsedJson;
+          pendingAiSchedule = parsedSchedule;
+          bubbleContent = `<strong>✅ Viikkosuunnitelma luotu!</strong><br>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+            <button onclick="window.openAiScheduleModal()" style="padding:8px 12px; background:#10b981; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">👁️ Esikatsele</button>
+            <button onclick="downloadJSON(lastBotJSON, 'viikkolusuunnitelma.json')" style="padding:8px 12px; background:#3b82f6; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">📥 Lataa JSON</button>
+          </div>
+          <details style="margin-top:10px; font-size:0.9em;"><summary>📋 Näytä JSON</summary><pre style="background:#1f2937; padding:10px; border-radius:5px; overflow-x:auto; max-height:300px; color:#e5e7eb;">${escapeHtml(parsedJson)}</pre></details>`;
+        }
+      } catch (error) {
+        bubbleContent = `<strong>⚠️ Virheellinen JSON</strong><br>Anna vastaus täsmälleen oikeassa muodossa. Vain tunnit 8:00–9:00 ... 21:00–22:00.`;
+        lastBotJSON = null;
+      }
     }
     
     botMsgDiv.innerHTML = `<div class="bubble">${bubbleContent}</div>`;
@@ -1378,28 +1832,141 @@ function extractJsonFromText(text) {
   }
 }
 
-function resetChat() {
-  if (confirm("Aloitetaanko uusi keskustelu?")) {
-    chatHistory = [];
-    const messagesDiv = document.getElementById("chatbotMessages");
-    if (messagesDiv) {
-      messagesDiv.innerHTML = `
-        <div class="chatbot-message bot">
-          <div class="bubble">🔄 Uusi keskustelu aloitettu!</div>
-        </div>
-      `;
-    }
-    showToast("🔄 Keskustelu nollattu");
+function toggleChatHistorySidebar(forceOpen) {
+  const sidebar = document.getElementById("chatHistorySidebar");
+  const railBtn = document.getElementById("toggleChatHistoryBtn");
+  if (!sidebar) return;
+
+  const shouldOpen = typeof forceOpen === "boolean" ? forceOpen : sidebar.classList.contains("hidden");
+  sidebar.classList.toggle("hidden", !shouldOpen);
+  if (railBtn) {
+    railBtn.classList.toggle("active", shouldOpen);
   }
+}
+
+function closeNewChatDialog() {
+  const modal = document.getElementById("newChatConfirmModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function createNewConversation() {
+  const nextIndex = conversationList.length + 1;
+  const newConversation = {
+    id: `chat-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    title: `Keskustelu ${nextIndex}`,
+    messages: []
+  };
+
+  conversationList = [newConversation, ...conversationList];
+  activeConversationId = newConversation.id;
+  chatHistory = [];
+  saveChatHistory();
+  renderConversationList();
+  renderChatHistory();
+  closeNewChatDialog();
+}
+
+function deleteConversation(conversationId, options = {}) {
+  const { keepPlaceholder = true } = options;
+  const targetIndex = conversationList.findIndex(item => item.id === conversationId);
+  if (targetIndex === -1) return;
+
+  const isActive = conversationId === activeConversationId;
+  conversationList.splice(targetIndex, 1);
+
+  if (!conversationList.length && keepPlaceholder) {
+    const fresh = {
+      id: `chat-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      title: "Keskustelu 1",
+      messages: []
+    };
+    conversationList.push(fresh);
+    activeConversationId = fresh.id;
+    chatHistory = [];
+  } else if (isActive) {
+    activeConversationId = conversationList[Math.max(0, targetIndex - 1)]?.id || null;
+    if (activeConversationId) {
+      const active = getActiveConversation();
+      chatHistory = active.messages;
+    } else {
+      chatHistory = [];
+    }
+  }
+
+  saveChatHistory();
+  renderConversationList();
+  renderChatHistory();
+  showToast("🗑️ Keskustelu poistettu.");
+}
+
+function resetChat() {
+  const activeConversation = getActiveConversation();
+  const activeMessages = Array.isArray(activeConversation.messages) ? activeConversation.messages : [];
+  const modal = document.getElementById("newChatConfirmModal");
+
+  if (!modal) {
+    createNewConversation();
+    return;
+  }
+
+  if (!activeMessages.length && conversationList.length <= 1) {
+    createNewConversation();
+    return;
+  }
+
+  modal.classList.remove("hidden");
+  modal.dataset.mode = "new-chat";
+}
+
+function handleNewChatDecision(mode) {
+  const activeConversation = getActiveConversation();
+  if (mode === "save") {
+    saveChatHistory();
+    createNewConversation();
+    showToast("✅ Vanha keskustelu säilytetty ja uusi avattu.");
+    return;
+  }
+
+  if (mode === "delete") {
+    const activeId = activeConversation?.id;
+    if (activeId) {
+      deleteConversation(activeId, { keepPlaceholder: false });
+    }
+    const nextIndex = conversationList.length + 1;
+    const replacement = {
+      id: `chat-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      title: `Keskustelu ${nextIndex}`,
+      messages: []
+    };
+    conversationList = [replacement, ...conversationList];
+    activeConversationId = replacement.id;
+    chatHistory = [];
+    saveChatHistory();
+    renderConversationList();
+    renderChatHistory();
+    closeNewChatDialog();
+    showToast("🗑️ Vanha keskustelu poistettiin ja uusi avattu.");
+    return;
+  }
+
+  closeNewChatDialog();
 }
 
 function initChatbot() {
   const input = document.getElementById("chatbotInput");
   const sendBtn = document.getElementById("chatbotSendBtn");
   const resetBtn = document.getElementById("resetChatBtn");
+  const apiKeyBtn = document.getElementById("apiKeyBtn");
+  const newChatRailBtn = document.getElementById("newChatRailBtn");
+  const toggleHistoryBtn = document.getElementById("toggleChatHistoryBtn");
+  const saveOldChatBtn = document.getElementById("saveOldChatBtn");
+  const deleteOldChatBtn = document.getElementById("deleteOldChatBtn");
+  const cancelNewChatBtn = document.getElementById("cancelNewChatBtn");
   const suggestions = document.querySelectorAll(".chatbot-suggestions button");
 
   if (!input || !sendBtn) return;
+
+  loadChatHistory();
 
   const send = () => sendChatMessage(input.value);
 
@@ -1410,6 +1977,36 @@ function initChatbot() {
 
   if (resetBtn) {
     resetBtn.addEventListener("click", resetChat);
+  }
+
+  if (toggleHistoryBtn) {
+    toggleHistoryBtn.addEventListener("click", () => toggleChatHistorySidebar());
+  }
+
+  if (newChatRailBtn) {
+    newChatRailBtn.addEventListener("click", () => resetChat());
+  }
+
+  if (saveOldChatBtn) {
+    saveOldChatBtn.addEventListener("click", () => handleNewChatDecision("save"));
+  }
+
+  if (deleteOldChatBtn) {
+    deleteOldChatBtn.addEventListener("click", () => handleNewChatDecision("delete"));
+  }
+
+  if (cancelNewChatBtn) {
+    cancelNewChatBtn.addEventListener("click", closeNewChatDialog);
+  }
+
+  if (apiKeyBtn) {
+    apiKeyBtn.addEventListener("click", () => {
+      const newKey = promptForGeminiApiKey(true);
+      if (newKey) {
+        showToast("✅ Uusi Gemini API-avain tallennettu.", 2200);
+        updateChatbotStatus("connected", "● Valmis");
+      }
+    });
   }
 
   suggestions.forEach(btn => {
@@ -1452,6 +2049,8 @@ document.addEventListener("DOMContentLoaded", function() {
   renderTimetable();
   updateAISummary();
   updateWeeklySummary();
+  renderOverviewPanel();
+  updateSaveStatus("✅ Tallennettu");
   startAutoRefresh();
   
   const addBtn = document.getElementById("addSelectedExamBtn");
@@ -1470,3 +2069,4 @@ document.addEventListener("DOMContentLoaded", function() {
   
   console.log("Alustus valmis!");
 });
+Ei 
