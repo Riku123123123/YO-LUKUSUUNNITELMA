@@ -1549,7 +1549,8 @@ VAIN nämä avaimet ovat sallittuja: 8:00–9:00, 9:00–10:00, ..., 21:00–22:
 Aseta arvoiksi lyhyitä mutta tarkentavia kuvauksia, esim. "Matematiikka: teoria", "Englanti: sanasto", "LOUNAS", "LEPO", "VAPAA", "Kertaustunti" tai tyhjä merkkijono "".
 Varmista, että arvo on tekstiä, ei numeroa ja ei muita kellonaikoja.
 Älä anna viikkosuunnitelmaa ilman, että käyttäjä pyytää sitä. Voit ehdottaa käyttäjälle, että hän pyytää viikkosuunnitelmaa, mutta älä luo sitä ilman pyyntöä.
-`;
+POIKKEUS: Jos käyttäjä pyytää viikkosuunnitelmaa, eikä hänellä ole valittuna kokeita, kerro hänelle ystävällisesti, että sivuston yläosasta löytyy kohta, josta pystyy lisäämään kokeita, jotta voimme tehdä hänelle henkilökohtaisen viikkosuunnitelman. Sinun ei tarvitse kysyä häneltä erikseen aineita, päivämääriä yms. tietoja, mitä saat jo automaattisesti sen jälkeen. Kysy häneltä mieluummin, millainen päivärytmi hänellä on yms.
+`
 }
 
 function validateScheduleObject(schedule) {
