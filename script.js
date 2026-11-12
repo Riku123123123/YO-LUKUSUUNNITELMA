@@ -704,6 +704,27 @@ function updateStreak(exam, addedDate = new Date()) {
   if (!exam.streak) exam.streak = { lastDate: addedDate.toISOString(), count: 1 };
 }
 
+function removeExamHoursFromWeeklyLog(exam) {
+  if (!exam || !Array.isArray(exam.history)) return;
+
+  exam.history.forEach(entry => {
+    const value = Number(entry.value || 0);
+    if (!value) return;
+
+    const date = new Date(entry.timestamp || entry.time || Date.now());
+    if (Number.isNaN(date.getTime())) return;
+
+    const isoDate = date.toISOString().split('T')[0];
+    const weeklyEntry = weeklyStudyLog.find(log => log.date === isoDate);
+    if (!weeklyEntry) return;
+
+    weeklyEntry.hours = Math.max(0, Number(weeklyEntry.hours || 0) - value);
+  });
+
+  saveWeeklyData();
+  updateWeeklySummary();
+}
+
 function addStudyToExam(examId, hours) {
   const exam = exams.find(e => e.id === examId);
   if (!exam) return;
@@ -730,6 +751,7 @@ function resetExam(examId) {
   if (!confirm("Nollataanko kaikki tunnit tästä kokeesta?")) return;
   const exam = exams.find(e => e.id === examId);
   if (exam) {
+    removeExamHoursFromWeeklyLog(exam);
     exam.studied = 0;
     exam.history = [];
     exam.streak = { lastDate: null, count: 0 };
@@ -741,6 +763,10 @@ function resetExam(examId) {
 
 function deleteExam(examId) {
   if (!confirm("Poistetaanko tämä koe?")) return;
+  const exam = exams.find(e => e.id === examId);
+  if (exam) {
+    removeExamHoursFromWeeklyLog(exam);
+  }
   exams = exams.filter(e => e.id !== examId);
   saveData();
   renderAllExams();
@@ -960,6 +986,7 @@ function renderOverviewPanel() {
   const nextExamText = nextExam ? `${nextExam.name} • ${new Date(nextExam.date).toLocaleDateString("fi-FI")}` : "Ei tulevia kokeita";
   const attention = totalTarget > 0 ? Math.max(0, Math.min(100, (totalStudied / totalTarget) * 100)) : 0;
   const focus = nextExam ? Math.max(0, Math.ceil((nextExam.targetHours - nextExam.studied) / Math.max(1, Math.ceil((new Date(nextExam.date) - new Date()) / (1000 * 60 * 60 * 24))))) : 0;
+  const realisticDailyFocus = nextExam ? Math.min(4, Math.max(1, Math.ceil((nextExam.targetHours - nextExam.studied) / 8))) : 0;
   const weekText = `${getWeeklyTotal().toFixed(1)} / ${weeklyTarget} h`;
 
   root.innerHTML = `
@@ -987,7 +1014,7 @@ function renderOverviewPanel() {
     </div>
     <div class="focus-box">
       <strong>📌 Päivän fokus:</strong>
-      ${nextExam ? `Tee ${Math.max(1, Math.ceil((nextExam.targetHours - nextExam.studied) / 3))}h ${nextExam.name} -kertausta ja pidä yksi 10 minuutin tauko.` : "Lisää koe ja tee henkilökohtainen lukusuunnitelma."}
+      ${nextExam ? `Tee ${realisticDailyFocus}h ${nextExam.name} -kertausta, jaa se 2–3 pätkään ja pidä 10–15 minuutin tauko.` : "Lisää koe ja tee henkilökohtainen lukusuunnitelma."}
     </div>
   `;
 }
